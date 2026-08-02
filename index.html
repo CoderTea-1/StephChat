@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Stream Multi-Chat</title>
+    <!-- Pusher for Kick chat -->
+    <script src="https://js.pusher.com/7.2/pusher.min.js"></script>
+    <style>
+        body {
+            background-color: #0e0e10;
+            color: #efeff1;
+            font-family: sans-serif;
+            margin: 0;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            box-sizing: border-box;
+        }
+        #config-bar {
+            margin-bottom: 10px;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        input, button {
+            background: #18181b;
+            color: white;
+            border: 1px solid #26262c;
+            padding: 6px 10px;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+        input { flex: 1; min-width: 140px; }
+        button { cursor: pointer; background: #9146FF; font-weight: bold; }
+        #chat-container {
+            flex: 1;
+            overflow-y: auto;
+            border: 1px solid #26262c;
+            background: #18181b;
+            padding: 10px;
+            border-radius: 4px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .message { word-break: break-word; font-size: 14px; line-height: 1.4; }
+        .badge { font-size: 10px; padding: 2px 4px; border-radius: 3px; margin-right: 6px; font-weight: bold; }
+        .twitch { background: #9146FF; color: white; }
+        .kick { background: #53fc18; color: black; }
+        .youtube { background: #FF0000; color: white; }
+        .username { font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div id="config-bar">
+        <input type="text" id="twitch-channel" placeholder="Twitch Channel">
+        <input type="text" id="kick-room" placeholder="Kick Chatroom ID">
+        <input type="text" id="yt-live-id" placeholder="YouTube Video ID">
+        <input type="text" id="yt-api-key" placeholder="Google API Key">
+        <button onclick="startChat()">Connect All</button>
+    </div>
+
+    <div id="chat-container"></div>
+
+    <script>
+        const chatContainer = document.getElementById('chat-container');
+        let userIsScrolling = false;
+        let ytTimeout = null;
+        let twitchWs = null;
+        let pusherInstance = null;
+
+        chatContainer.addEventListener('scroll', () => {
+            const threshold = 20;
+            const atBottom = chatContainer.scrollHeight - chatContainer.scrollTop - chatContainer.clientHeight <= threshold;
+            userIsScrolling = !atBottom;
+        });
+
+        function appendMessage(platform, username, message, color = '#fff') {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message';
+
+            const badge = document.createElement('span');
+            badge.className = `badge ${platform}`;
+            badge.textContent = platform.toUpperCase();
+            messageDiv.appendChild(badge);
+
+            const userSpan = document.createElement('span');
+            userSpan.className = 'username';
+            userSpan.style.color = color;
+            userSpan.textContent = `${username}: `;
+            messageDiv.appendChild(userSpan);
+
+            messageDiv.appendChild(document.createTextNode(message));
+            chatContainer.appendChild(messageDiv);
+
+            if (chatContainer.children.length > 300) {
+                chatContainer.removeChild(chatContainer.firstChild);
+            }
+
+            if (!userIsScrolling) {
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            }
+        }
+
+        function startChat() {
+            const twitchChan = document.getElementById('twitch-channel').value.trim();
+            const kickId = document.getElementById('kick-room').value.trim();
+            const ytId = document.getElementById('yt-live-id').value.trim();
+            const ytKey = document.getElementById('yt-api-key').value.trim();
+
+            chatContainer.innerHTML = '';
+            if (ytTimeout) clearTimeout(ytTimeout);
+            if (twitchWs) twitchWs.close();
+            if (pusherInstance) pusherInstance.disconnect();
+
+            // 1. TWITCH (Direct WebSocket Stream)
+            if (twitchChan) {
+                twitchWs = new WebSocket('wss://irc-ws.chat.twitch.tv:443');
+                twitchWs.onopen = () => {
+                    twitchWs.send('CAP REQ :twitch.tv/tags twitch.tv/commands');
+                    twitchWs.send('NICK justinfan' + Math.floor(Math.random() * 89999 + 10000));
+                    twitchWs.send(`JOIN #${twitchChan.toLowerCase()}`);
+                };
+                twitchWs.onmessage = (event) => {
+                    const data = event.data;
+                    if (data.startsWith('PING')) {
+                        twitchWs.send('PONG :tmi.twitch.tv');
+                    } else if (data.includes('PRIVMSG')) {
+                        try {
+                            const tagsPart = data.substring(0, data.indexOf('PRIVMSG'));
+                            const userMatch = tagsPart.match(/display-name=([^;]*)/);
+                            const colorMatch = tagsPart.match(/color=([^;]*)/);
+                            const username = userMatch && userMatch[1] ? userMatch[1] : 'Unknown';
+                            const color = colorMatch && colorMatch[1] ? colorMatch[1] : '#9146FF';
+                            
+                            const msgIndex = data.indexOf('PRIVMSG');
+                            const trailingIndex = data.indexOf(' :', msgIndex);
+                            const msgText = trailingIndex !== -1 ? data.substring(trailingIndex + 2).trim() : '';
+
+                            appendMessage('twitch', username, msgText, color);
+                        } catch (e) {
+                            console.error('Twitch parsing error:', e);
+                        }
+                    }
+                };
+            }
+
+            // 2. KICK (Pusher Real-time Feed)
+            if (kickId) {
+                Pusher.logToConsole = false;
+                pusherInstance = new Pusher('eb1d5f283081a74b9325', {
+                    cluster: 'us2',
+                    wsHost: 'ws-us2.pusher.com',
+                    forceTLS: true,
+                    enabledTransports: ['ws', 'wss']
+                });
+                const channel = pusherInstance.subscribe(`chatrooms.${kickId}.v2`);
+                channel.bind('App\\Events\\ChatMessageEvent', (data) => {
+                    if (data && data.sender) {
+                        appendMessage('kick', data.sender.username, data.content, '#53fc18');
+                    }
+                });
+            }
+
+            // 3. YOUTUBE (Dynamic Polling)
+            if (ytId && ytKey) {
+                let nextPageToken = '';
+                
+                async function fetchYouTubeChat() {
+                    try {
+                        let chatIDUrl = `https://www.googleapis.com/youtube/v3/videos?part=liveStreamingDetails&id=${ytId}&key=${ytKey}`;
+                        let res = await fetch(chatIDUrl);
+                        let data = await res.json();
+                        let liveChatId = data.items?.[0]?.liveStreamingDetails?.activeLiveChatId;
+
+                        if (!liveChatId) {
+                            ytTimeout = setTimeout(fetchYouTubeChat, 5000);
+                            return;
+                        }
+
+                        let msgUrl = `https://www.googleapis.com/youtube/v3/liveChat/messages?liveChatId=${liveChatId}&part=snippet,authorDetails&key=${ytKey}`;
+                        if (nextPageToken) msgUrl += `&pageToken=${nextPageToken}`;
+
+                        let msgRes = await fetch(msgUrl);
+                        let msgData = await msgRes.json();
+                        
+                        nextPageToken = msgData.nextPageToken;
+
+                        if (msgData.items) {
+                            msgData.items.forEach(item => {
+                                const author = item.authorDetails.displayName;
+                                const text = item.snippet.displayMessage;
+                                appendMessage('youtube', author, text, '#FF0000');
+                            });
+                        }
+
+                        const nextInterval = msgData.pollingIntervalMillis || 3000;
+                        ytTimeout = setTimeout(fetchYouTubeChat, nextInterval);
+
+                    } catch (err) {
+                        console.error('YouTube Fetch Error:', err);
+                        ytTimeout = setTimeout(fetchYouTubeChat, 5000);
+                    }
+                }
+                fetchYouTubeChat();
+            }
+
+            alert('Multi-Chat Connected!');
+        }
+    </script>
+</body>
+</html>
