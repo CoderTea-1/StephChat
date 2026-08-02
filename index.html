@@ -55,8 +55,8 @@
 <body>
 
     <div id="config-bar">
-        <input type="text" id="sassinatorsteph" placeholder="Twitch Channel">
-        <input type="text" id="6628056" placeholder="Kick Chatroom ID">
+        <input type="text" id="twitch-channel" value="sassinatorsteph" placeholder="Twitch Channel">
+        <input type="text" id="kick-room" value="6573711" placeholder="Kick Chatroom ID">
         <input type="text" id="yt-live-id" placeholder="YouTube Video ID">
         <input type="text" id="yt-api-key" placeholder="Google API Key">
         <button onclick="startChat()">Connect All</button>
@@ -71,11 +71,15 @@
         let twitchWs = null;
         let pusherInstance = null;
 
-        // Autofill Twitch channel from localStorage on page load
+        // Autofill Twitch and Kick from localStorage on page load if saved before
         window.addEventListener('DOMContentLoaded', () => {
             const savedTwitchChannel = localStorage.getItem('stream_twitch_channel');
             if (savedTwitchChannel) {
                 document.getElementById('twitch-channel').value = savedTwitchChannel;
+            }
+            const savedKickRoom = localStorage.getItem('stream_kick_room');
+            if (savedKickRoom) {
+                document.getElementById('kick-room').value = savedKickRoom;
             }
         });
 
@@ -118,9 +122,12 @@
             const ytId = document.getElementById('yt-live-id').value.trim();
             const ytKey = document.getElementById('yt-api-key').value.trim();
 
-            // Save Twitch channel to browser storage for autofill next time
+            // Save values to browser storage for autofill next time
             if (twitchChan) {
                 localStorage.setItem('stream_twitch_channel', twitchChan);
+            }
+            if (kickId) {
+                localStorage.setItem('stream_kick_room', kickId);
             }
 
             chatContainer.innerHTML = '';
@@ -162,8 +169,8 @@
 
             // 2. KICK (Pusher Real-time Feed)
             if (kickId) {
-                Pusher.logToConsole = false;
-                pusherInstance = new Pusher('eb1d5f283081a74b9325', {
+                Pusher.logToConsole = false; 
+                pusherInstance = new Pusher('32cbd69e4b950bf97679', {
                     cluster: 'us2',
                     wsHost: 'ws-us2.pusher.com',
                     forceTLS: true,
