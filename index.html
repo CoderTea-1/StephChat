@@ -55,8 +55,8 @@
 <body>
 
     <div id="config-bar">
-        <input type="text" id="twitch-channel" placeholder="Twitch Channel">
-        <input type="text" id="kick-room" placeholder="Kick Chatroom ID">
+        <input type="text" id="sassinatorsteph" placeholder="Twitch Channel">
+        <input type="text" id="6628056" placeholder="Kick Chatroom ID">
         <input type="text" id="yt-live-id" placeholder="YouTube Video ID">
         <input type="text" id="yt-api-key" placeholder="Google API Key">
         <button onclick="startChat()">Connect All</button>
@@ -70,6 +70,14 @@
         let ytTimeout = null;
         let twitchWs = null;
         let pusherInstance = null;
+
+        // Autofill Twitch channel from localStorage on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            const savedTwitchChannel = localStorage.getItem('stream_twitch_channel');
+            if (savedTwitchChannel) {
+                document.getElementById('twitch-channel').value = savedTwitchChannel;
+            }
+        });
 
         chatContainer.addEventListener('scroll', () => {
             const threshold = 20;
@@ -109,6 +117,11 @@
             const kickId = document.getElementById('kick-room').value.trim();
             const ytId = document.getElementById('yt-live-id').value.trim();
             const ytKey = document.getElementById('yt-api-key').value.trim();
+
+            // Save Twitch channel to browser storage for autofill next time
+            if (twitchChan) {
+                localStorage.setItem('stream_twitch_channel', twitchChan);
+            }
 
             chatContainer.innerHTML = '';
             if (ytTimeout) clearTimeout(ytTimeout);
