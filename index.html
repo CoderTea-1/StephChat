@@ -56,9 +56,9 @@
 
     <div id="config-bar">
         <input type="text" id="twitch-channel" value="sassinatorsteph" placeholder="Twitch Channel">
-        <input type="text" id="kick-room" value="6573711" placeholder="Kick Chatroom ID">
-        <input type="text" id="yt-live-id" placeholder="YouTube Video ID">
-        <input type="text" id="yt-api-key" placeholder="Google API Key">
+        <input type="text" id="kick-channel" value="sassinatorsteph" placeholder="Kick Channel Username">
+        <input type="text" id="yt-handle" value="sassinatorsteph" placeholder="YouTube Handle (e.g. @name)">
+        <input type="text" id="yt-api-key" value="AIzaSyD7hscgvfAgyhzXpWONibTTCMrGKLjIZeg" placeholder="Google API Key">
         <button onclick="startChat()">Connect All</button>
     </div>
 
@@ -71,16 +71,19 @@
         let twitchWs = null;
         let pusherInstance = null;
 
-        // Autofill Twitch and Kick from localStorage on page load if saved before
+        // Autofill configuration fields from localStorage on page load
         window.addEventListener('DOMContentLoaded', () => {
             const savedTwitchChannel = localStorage.getItem('stream_twitch_channel');
-            if (savedTwitchChannel) {
-                document.getElementById('twitch-channel').value = savedTwitchChannel;
-            }
-            const savedKickRoom = localStorage.getItem('stream_kick_room');
-            if (savedKickRoom) {
-                document.getElementById('kick-room').value = savedKickRoom;
-            }
+            if (savedTwitchChannel) document.getElementById('twitch-channel').value = savedTwitchChannel;
+
+            const savedKickChannel = localStorage.getItem('stream_kick_channel');
+            if (savedKickChannel) document.getElementById('kick-channel').value = savedKickChannel;
+
+            const savedYtHandle = localStorage.getItem('stream_yt_handle');
+            if (savedYtHandle) document.getElementById('yt-handle').value = savedYtHandle;
+
+            const savedYtKey = localStorage.getItem('stream_yt_key');
+            if (savedYtKey) document.getElementById('yt-api-key').value = savedYtKey;
         });
 
         chatContainer.addEventListener('scroll', () => {
@@ -116,19 +119,17 @@
             }
         }
 
-        function startChat() {
+        async function startChat() {
             const twitchChan = document.getElementById('twitch-channel').value.trim();
-            const kickId = document.getElementById('kick-room').value.trim();
-            const ytId = document.getElementById('yt-live-id').value.trim();
+            const kickChan = document.getElementById('kick-channel').value.trim();
+            const ytHandle = document.getElementById('yt-handle').value.trim();
             const ytKey = document.getElementById('yt-api-key').value.trim();
 
-            // Save values to browser storage for autofill next time
-            if (twitchChan) {
-                localStorage.setItem('stream_twitch_channel', twitchChan);
-            }
-            if (kickId) {
-                localStorage.setItem('stream_kick_room', kickId);
-            }
+            // Save values to browser local storage
+            if (twitchChan) localStorage.setItem('stream_twitch_channel', twitchChan);
+            if (kickChan) localStorage.setItem('stream_kick_channel', kickChan);
+            if (ytHandle) localStorage.setItem('stream_yt_handle', ytHandle);
+            if (ytKey) localStorage.setItem('stream_yt_key', ytKey);
 
             chatContainer.innerHTML = '';
             if (ytTimeout) clearTimeout(ytTimeout);
@@ -167,45 +168,77 @@
                 };
             }
 
-            // 2. KICK (Pusher Real-time Feed)
-            if (kickId) {
-                Pusher.logToConsole = false; 
-                pusherInstance = new Pusher('32cbd69e4b950bf97679', {
-                    cluster: 'us2',
-                    wsHost: 'ws-us2.pusher.com',
-                    forceTLS: true,
-                    enabledTransports: ['ws', 'wss']
-                });
-                const channel = pusherInstance.subscribe(`chatrooms.${kickId}.v2`);
-                channel.bind('App\\Events\\ChatMessageEvent', (data) => {
-                    if (data && data.sender) {
-                        appendMessage('kick', data.sender.username, data.content, '#53fc18');
+            // 2. KICK (Auto-resolve Username to Chatroom ID & Pusher Feed)
+            if (kickChan) {
+                try {
+                    const res = await fetch(`https://kick.com/api/v2/channels/${encodeURIComponent(kickChan)}`);
+                    const channelData = await res.json();
+                    const kickId = channelData.chatroom?.id;
+
+                    if (kickId) {
+                        Pusher.logToConsole = false; 
+                        pusherInstance = new Pusher('32cbd69e4b950bf97679', {
+                            cluster: 'us2',
+                            wsHost: 'ws-us2.pusher.com',
+                            forceTLS: true,
+                            enabledTransports: ['ws', 'wss']
+                        });
+                        const channel = pusherInstance.subscribe(`chatrooms.${kickId}.v2`);
+                        channel.bind('App\\Events\\ChatMessageEvent', (data) => {
+                            if (data && data.sender) {
+                                appendMessage('kick', data.sender.username, data.content, '#53fc18');
+                            }
+                        });
+                    } else {
+                        console.error('Could not find Kick chatroom ID for channel:', kickChan);
                     }
-                });
+                } catch (err) {
+                    console.error('Kick Channel Resolution Error:', err);
+                }
             }
 
-            // 3. YOUTUBE (Dynamic Polling)
-            if (ytId && ytKey) {
+            // 3. YOUTUBE (Auto-resolve Handle to Live Stream & Poll)
+            if (ytHandle && ytKey) {
                 let nextPageToken = '';
-                
+                let activeLiveChatId = null;
+
                 async function fetchYouTubeChat() {
                     try {
-                        let chatIDUrl = `https://www.googleapis.com/youtube/v3/videos?part=liveStreamingDetails&id=${ytId}&key=${ytKey}`;
-                        let res = await fetch(chatIDUrl);
-                        let data = await res.json();
-                        let liveChatId = data.items?.[0]?.liveStreamingDetails?.activeLiveChatId;
+                        if (!activeLiveChatId) {
+                            let formattedHandle = ytHandle.startsWith('@') ? ytHandle : '@' + ytHandle;
+                            let searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(formattedHandle)}&type=video&eventType=live&key=${ytKey}`;
+                            
+                            let searchRes = await fetch(searchUrl);
+                            let searchData = await searchRes.json();
+                            
+                            if (searchData.items && searchData.items.length > 0) {
+                                let videoId = searchData.items[0].id.videoId;
+                                
+                                let detailsUrl = `https://www.googleapis.com/youtube/v3/videos?part=liveStreamingDetails&id=${videoId}&key=${ytKey}`;
+                                let detailsRes = await fetch(detailsUrl);
+                                let detailsData = await detailsRes.json();
+                                
+                                activeLiveChatId = detailsData.items?.[0]?.liveStreamingDetails?.activeLiveChatId;
+                            }
 
-                        if (!liveChatId) {
+                            if (!activeLiveChatId) {
+                                ytTimeout = setTimeout(fetchYouTubeChat, 10000);
+                                return;
+                            }
+                        }
+
+                        let msgUrl = `https://www.googleapis.com/youtube/v3/liveChat/messages?liveChatId=${activeLiveChatId}&part=snippet,authorDetails&key=${ytKey}`;
+                        if (nextPageToken) msgUrl += `&pageToken=${nextPageToken}`;
+
+                        let msgRes = await fetch(msgUrl);
+                        
+                        if (msgRes.status === 404 || msgRes.status === 403) {
+                            activeLiveChatId = null;
                             ytTimeout = setTimeout(fetchYouTubeChat, 5000);
                             return;
                         }
 
-                        let msgUrl = `https://www.googleapis.com/youtube/v3/liveChat/messages?liveChatId=${liveChatId}&part=snippet,authorDetails&key=${ytKey}`;
-                        if (nextPageToken) msgUrl += `&pageToken=${nextPageToken}`;
-
-                        let msgRes = await fetch(msgUrl);
                         let msgData = await msgRes.json();
-                        
                         nextPageToken = msgData.nextPageToken;
 
                         if (msgData.items) {
