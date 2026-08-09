@@ -40,12 +40,13 @@
 
         .butterfly {
             position: absolute;
-            font-size: 28px;
+            width: 28px;
+            height: 28px;
             user-select: none;
             will-change: transform, opacity;
             animation: fly linear infinite;
-            filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.7)) hue-rotate(305deg) saturate(1.2);
             opacity: 0.9;
+            object-fit: contain;
         }
 
         @keyframes fly {
@@ -179,11 +180,12 @@
             position: absolute;
             top: -14px;
             left: -8px; /* Moved further left outside/on the edge */
-            font-size: 20px;
+            width: 20px;
+            height: 20px;
             z-index: 5;
-            filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.8)) hue-rotate(305deg) saturate(1.2);
             user-select: none;
             pointer-events: none;
+            object-fit: contain;
         }
 
         /* Chatter Info Header (Matches platform background & border) */
@@ -252,9 +254,9 @@
             text-transform: uppercase;
             box-shadow: 0 2px 4px rgba(0,0,0,0.2);
         }
-        .twitch { background: #ff7fb2; color: white; }
-        .kick { background: #ff9fcb; color: #5b2742; }
-        .youtube { background: #ff6fa7; color: white; }
+        .twitch { background: #9146FF; color: white; }
+        .kick { background: #53fc18; color: #0b1a05; }
+        .youtube { background: #FF0000; color: white; }
 
         /* Chat Badges Layout */
         .chat-badge-img {
@@ -495,11 +497,13 @@ const TWITCH_CUSTOM_GIFTER_BADGES = {
         function initButterflies() {
             const container = document.getElementById('butterfly-container');
             const count = Math.random() * 20;
+            const butterflySrc = 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_ffacd778c2f7413f8a1e553a213cc222/default/dark/4.0';
 
             for (let i = 0; i < count; i++) {
-                const el = document.createElement('div');
+                const el = document.createElement('img');
                 el.className = 'butterfly';
-                el.textContent = '🦋';
+                el.src = butterflySrc;
+                el.alt = 'butterfly';
                 
                 const leftPos = Math.random() * 100;
                 const animDuration = 10 + Math.random() * 8; 
@@ -544,9 +548,10 @@ const TWITCH_CUSTOM_GIFTER_BADGES = {
             messageDiv.className = `message ${platform}`;
 
             // 1. Add Pink Butterfly on Top Left Corner (Pushed further left)
-            const butterflySpan = document.createElement('span');
+            const butterflySpan = document.createElement('img');
             butterflySpan.className = 'chat-butterfly';
-            butterflySpan.textContent = '🦋';
+            butterflySpan.src = 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_ffacd778c2f7413f8a1e553a213cc222/default/dark/4.0';
+            butterflySpan.alt = 'butterfly';
             messageDiv.appendChild(butterflySpan);
 
             // 2. Chatter Info Header Box
@@ -557,6 +562,13 @@ const TWITCH_CUSTOM_GIFTER_BADGES = {
             badge.className = `badge ${platform.toLowerCase()}`;
             badge.textContent = platform;
             headerDiv.appendChild(badge);
+
+            if (eventLabel) {
+                const eventPill = document.createElement('span');
+                eventPill.className = 'event-pill';
+                eventPill.textContent = eventLabel;
+                headerDiv.appendChild(eventPill);
+            }
 
             if (platform === 'Twitch' && twitchBadges) {
                 renderTwitchBadges(twitchBadges, badgeInfo, headerDiv);
