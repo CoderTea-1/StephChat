@@ -562,13 +562,6 @@ const TWITCH_CUSTOM_GIFTER_BADGES = {
             badge.textContent = platform;
             headerDiv.appendChild(badge);
 
-            if (eventLabel) {
-                const eventPill = document.createElement('span');
-                eventPill.className = 'event-pill';
-                eventPill.textContent = eventLabel;
-                headerDiv.appendChild(eventPill);
-            }
-
             if (platform === 'Twitch' && twitchBadges) {
                 renderTwitchBadges(twitchBadges, badgeInfo, headerDiv);
             } else if (platform === 'Kick' && kickBadges.length > 0) {
