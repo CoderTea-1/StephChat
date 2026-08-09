@@ -6,11 +6,11 @@
     <!-- Pusher for Kick chat -->
     <script src="https://js.pusher.com/7.2/pusher.min.js"></script>
     <style>
-        /* Fully transparent body and background for OBS */
+        /* Solid kawaii background for OBS */
         body {
-            background-color: #b352ba;
-            color: #ffffff;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            /*background-color: #000000;*/
+            color: #5b2742;
+            font-family: 'Trebuchet MS', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             margin: 0;
             padding: 10px;
             display: flex;
@@ -22,7 +22,7 @@
         }
 
         body.error-state {
-            background-color: rgba(255, 0, 0, 0.2) !important;
+            background-color: rgba(255, 190, 214, 0.95) !important;
             transition: background-color 0.3s ease;
         }
 
@@ -40,12 +40,12 @@
 
         .butterfly {
             position: absolute;
-            font-size: 24px;
+            font-size: 28px;
             user-select: none;
             will-change: transform, opacity;
             animation: fly linear infinite;
-            filter: drop-shadow(0 0 8px rgba(255, 105, 180, 0.9)) hue-rotate(310deg);
-            opacity: 0.85;
+            filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.7)) hue-rotate(305deg) saturate(1.2);
+            opacity: 0.9;
         }
 
         @keyframes fly {
@@ -80,35 +80,39 @@
             display: flex;
             gap: 6px;
             flex-wrap: wrap;
-            background: rgba(20, 20, 25, 0.95);
+            background: rgba(255, 245, 250, 0.94);
             padding: 10px;
-            border-radius: 8px;
-            backdrop-filter: blur(8px);
-            border: 1px solid rgba(255, 105, 180, 0.3);
+            border-radius: 16px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 167, 206, 0.65);
+            box-shadow: 0 10px 30px rgba(192, 92, 137, 0.18);
             flex-shrink: 0;
         }
 
         input, button {
-            background: rgba(30, 30, 35, 0.9);
-            color: white;
-            border: 1px solid rgba(255, 105, 180, 0.3);
+            background: rgba(255, 255, 255, 0.95);
+            color: #5b2742;
+            border: 1px solid rgba(255, 167, 206, 0.7);
             padding: 6px 10px;
-            border-radius: 6px;
+            border-radius: 999px;
             font-size: 12px;
             outline: none;
             transition: all 0.2s ease;
         }
         input:focus {
-            border-color: #ff007f;
+            border-color: #ff6fa7;
+            box-shadow: 0 0 0 3px rgba(255, 111, 167, 0.2);
         }
         input { flex: 1; min-width: 120px; }
         button { 
             cursor: pointer; 
-            background: linear-gradient(135deg, #ff007f, #ff69b4); 
+            background: linear-gradient(135deg, #ff6fa7, #ff9bc9); 
             font-weight: bold; 
             border: none;
+            color: #ffffff;
+            box-shadow: 0 6px 16px rgba(255, 111, 167, 0.35);
         }
-        button:hover { opacity: 0.9; }
+        button:hover { opacity: 0.96; transform: translateY(-1px); }
 
         /* Modern Chat Container with transparent wrapper */
         #chat-container {
@@ -131,7 +135,7 @@
             background: transparent;
         }
         #chat-container::-webkit-scrollbar-thumb {
-            background: rgba(255, 0, 127, 0.4);
+            background: rgba(255, 111, 167, 0.55);
             border-radius: 4px;
         }
 
@@ -150,23 +154,24 @@
             flex-shrink: 0;
             margin: 10px 0 6px 0; /* Reduced space between chats */
             overflow: visible;
-            text-shadow: 0 1px 2px rgba(0,0,0,0.7);
+            color: #5b2742;
+            text-shadow: none;
         }
 
         /* Platform-Specific Main Box Border */
         .message.Twitch {
-            border: 2px solid rgba(179, 157, 220, 0.7);
-            box-shadow: 0 4px 15px rgba(208, 183, 255, 0.25);
+            border: 2px solid rgba(255, 167, 206, 0.9);
+            box-shadow: 0 6px 18px rgba(255, 145, 190, 0.2);
         }
 
         .message.Kick {
-            border: 2px solid rgba(83, 252, 24, 0.7);
-            box-shadow: 0 4px 15px rgba(83, 252, 24, 0.25);
+            border: 2px solid rgba(255, 167, 206, 0.9);
+            box-shadow: 0 6px 18px rgba(255, 145, 190, 0.2);
         }
 
         .message.YouTube {
-            border: 2px solid rgba(255, 0, 0, 0.7);
-            box-shadow: 0 4px 15px rgba(255, 0, 0, 0.25);
+            border: 2px solid rgba(255, 167, 206, 0.9);
+            box-shadow: 0 6px 18px rgba(255, 145, 190, 0.2);
         }
 
         /* Pink Butterfly Pinned Further Left on Top Left Corner */
@@ -176,7 +181,7 @@
             left: -8px; /* Moved further left outside/on the edge */
             font-size: 20px;
             z-index: 5;
-            filter: drop-shadow(0 0 6px rgba(255, 105, 180, 0.9)) hue-rotate(310deg);
+            filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.8)) hue-rotate(305deg) saturate(1.2);
             user-select: none;
             pointer-events: none;
         }
@@ -194,15 +199,15 @@
         }
 
         .message.Twitch .message-header {
-            background: rgba(175, 152, 220, 0.9);
+            background: rgba(255, 214, 232, 0.95);
         }
 
         .message.Kick .message-header {
-            background: rgba(83, 252, 24, 0.6);
+            background: rgba(255, 227, 239, 0.95);
         }
 
         .message.YouTube .message-header {
-            background: rgba(255, 0, 0, 0.6);
+            background: rgba(255, 227, 239, 0.95);
         }
 
         /* Tighten spacing for badges and images */
@@ -224,9 +229,9 @@
         /* Chat Message Text Content Body with Pink Background */
         .message-content {
             padding: 10px 14px;
-            color: #ffffff;
+            color: #5b2742;
             word-break: break-word;
-            background: rgba(255, 255, 255, 0.4); /* Pink background */
+            background: rgba(255, 247, 251, 0.94);
             border-bottom-left-radius: 10px;
             border-bottom-right-radius: 10px;
         }
@@ -240,16 +245,16 @@
         .badge {
             font-size: 11px;
             padding: 3px 8px;
-            border-radius: 5px;
+            border-radius: 999px;
             margin-right: 8px;
             font-weight: 800;
             letter-spacing: 0.5px;
             text-transform: uppercase;
             box-shadow: 0 2px 4px rgba(0,0,0,0.2);
         }
-        .twitch { background: #9146FF; color: white; }
-        .kick { background: #53fc18; color: #0b1a05; }
-        .youtube { background: #FF0000; color: white; }
+        .twitch { background: #ff7fb2; color: white; }
+        .kick { background: #ff9fcb; color: #5b2742; }
+        .youtube { background: #ff6fa7; color: white; }
 
         /* Chat Badges Layout */
         .chat-badge-img {
@@ -257,7 +262,7 @@
             vertical-align: middle;
             margin-right: 6px;
             display: inline-block;
-            border-radius: 4px;
+            border-radius: 8px;
         }
 
         .username { 
