@@ -123,6 +123,10 @@
             gap: 12px;
         }
 
+        #chat-container.error-flash {
+            animation: flashRed 0.6s ease-in-out 3;
+        }
+
         /* Custom Scrollbar */
         #chat-container::-webkit-scrollbar {
             width: 4px;
@@ -291,7 +295,7 @@
         <input type="text" id="twitch-channel" value="sassinatorsteph" placeholder="Twitch">
         <input type="text" id="kick-channel" value="sassinatorsteph" placeholder="Kick">
         <input type="text" id="yt-handle" value="sassinatorsteph" placeholder="YouTube Handle">
-        <input type="text" id="yt-api-key" value="AIzaSyD7hscgvfAgyhzXpWONibTTCMrGKLjIZeg AIzaSyD5fT4WI10KS-7CgSfnn4PmmQS0RWX_f20" placeholder="API Keys">
+        <input type="text" id="yt-api-key" value="AIzaSyD7hscgvfAgyhzXpWONibTTCMrGKLjIZeg AIzaSyD5fT4WI10KS-7CgSfnn4PmmQS0RWX_f20 AIzaSyDJTaNOwFBamttdz6L9CIOi5FPxH87zbv0 AIzaSyAIXesAKxwZ3lB7-OnlRhE9xM6Lz2_birQ AIzaSyAu9uVZ0GXRbHDfzvRBTmGvjrqr1nDq3us" placeholder="API Keys">
         <button onclick="startChat()">Connect</button>
     </div>
 
@@ -1068,13 +1072,14 @@ const TWITCH_CUSTOM_GIFTER_BADGES = {
             let isInitialFetch = true; // <-- Added flag to skip old chat history
             
             const ytKeyInput = document.getElementById('yt-api-key');
+            const chatBox = document.getElementById('chat-container');
 
             // Helper to trigger the red error flash animation
             function triggerErrorFlash() {
-                if (ytKeyInput) {
-                    ytKeyInput.classList.remove('error-flash');
-                    void ytKeyInput.offsetWidth; // Trigger reflow to restart animation if already running
-                    ytKeyInput.classList.add('error-flash');
+                if (chatBox) {
+                    chatBox.classList.remove('error-flash');
+                    void chatBox.offsetWidth; // Trigger reflow to restart animation if already running
+                    chatBox.classList.add('error-flash');
                 }
             }
 
