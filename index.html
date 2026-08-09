@@ -548,10 +548,9 @@ const TWITCH_CUSTOM_GIFTER_BADGES = {
             messageDiv.className = `message ${platform}`;
 
             // 1. Add Pink Butterfly on Top Left Corner (Pushed further left)
-            const butterflySpan = document.createElement('img');
+            const butterflySpan = document.createElement('span');
             butterflySpan.className = 'chat-butterfly';
-            butterflySpan.src = 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_ffacd778c2f7413f8a1e553a213cc222/default/dark/4.0';
-            butterflySpan.alt = 'butterfly';
+            butterflySpan.textContent = '🦋';
             messageDiv.appendChild(butterflySpan);
 
             // 2. Chatter Info Header Box
