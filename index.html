@@ -3,12 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <title>Aesthetic Stream Multi-Chat</title>
-    <!-- Pusher for Kick chat -->
-    <script src="https://js.pusher.com/7.2/pusher.min.js"></script>
     <style>
-        /* Solid kawaii background for OBS */
+        /* Page visuals: lightweight, OBS-friendly overlay styles */
         body {
-            /*background-color: #000000;*/
             color: #5b2742;
             font-family: 'Trebuchet MS', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             margin: 0;
@@ -26,7 +23,7 @@
             transition: background-color 0.3s ease;
         }
 
-        /* Butterfly Background Animation Container */
+        /* Butterfly background animation container: decorative only */
         #butterfly-container {
             position: absolute;
             top: 0;
@@ -69,13 +66,13 @@
             }
         }
 
-        /* Ensure interactive items sit safely above the butterflies */
+        /* Ensure interactive UI (config + chat) sits above decorative butterflies */
         #config-bar, #chat-container {
             position: relative;
             z-index: 2;
         }
 
-        /* Config Bar Styling */
+        /* Top config bar (channel inputs + connect button) */
         #config-bar {
             margin-bottom: 10px;
             display: flex;
@@ -115,7 +112,7 @@
         }
         button:hover { opacity: 0.96; transform: translateY(-1px); }
 
-        /* Modern Chat Container with transparent wrapper */
+        /* Chat container: messages are appended here and scrolled to bottom */
         #chat-container {
             flex: 1;
             overflow-y: auto;
@@ -140,7 +137,7 @@
             border-radius: 4px;
         }
 
-        /* Base Chat Message Container */
+        /* Base chat message styling (per-message wrapper) */
         .message {
             position: relative;
             word-break: break-word;
@@ -175,20 +172,26 @@
             box-shadow: 0 6px 18px rgba(255, 145, 190, 0.2);
         }
 
-        /* Pink Butterfly Pinned Further Left on Top Left Corner */
-        .chat-butterfly {
-            position: absolute;
-            top: -14px;
-            left: -8px; /* Moved further left outside/on the edge */
-            width: 20px;
-            height: 20px;
-            z-index: 5;
-            user-select: none;
-            pointer-events: none;
-            object-fit: contain;
-        }
+        /* Small decorative butterfly/emoji pinned to message box */
+.chat-butterfly {
+    position: absolute;
+    top: clamp(-10px, -1.2vw, -16px);
+    left: clamp(-10px, -1.2vw, -16px); 
+    width: clamp(20px, 2.5vw, 40px);
+    height: clamp(20px, 2.5vw, 40px);
+    font-size: clamp(20px, 2vw, 40px); /* Ensures the emoji scales with the box */
+    line-height: 1;
+    z-index: 5;
+    user-select: none;
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    filter: drop-shadow(0 0 8px rgba(255, 105, 180, 0.9)) hue-rotate(310deg);
+    opacity: 0.85;
+}
 
-        /* Chatter Info Header (Matches platform background & border) */
+        /* Message header: platform badge + username + any platform badges */
         .message-header {
             display: flex;
             align-items: center;
@@ -201,7 +204,7 @@
         }
 
         .message.Twitch .message-header {
-            background: rgba(255, 214, 232, 0.95);
+            background: rgba(255, 227, 239, 0.95);
         }
 
         .message.Kick .message-header {
@@ -212,7 +215,7 @@
             background: rgba(255, 227, 239, 0.95);
         }
 
-        /* Tighten spacing for badges and images */
+        /* Tighten spacing for badges and small images */
         .badge {
             margin-right: 2px !important;
         }
@@ -220,7 +223,7 @@
             margin-right: 2px !important;
         }
 
-        /* Username styling with strong text outline/shadow for high contrast against any platform background */
+        /* Username styling: bold and separated from content */
         .username { 
             font-weight: 700; 
             margin-left: 2px;
@@ -228,7 +231,7 @@
             /*text-shadow: 0 0 4px #000000, 0 0 4px #000000, 0 1px 2px rgba(0,0,0,0.9);*/
         }
 
-        /* Chat Message Text Content Body with Pink Background */
+        /* Message body: the actual chat text / emotes */
         .message-content {
             padding: 10px 14px;
             color: #5b2742;
@@ -243,7 +246,7 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
-        /* Platform Badges */
+        /* Small platform badge labels (Twitch/Kick/YouTube) */
         .badge {
             font-size: 11px;
             padding: 3px 8px;
@@ -258,7 +261,7 @@
         .kick { background: #53fc18; color: #0b1a05; }
         .youtube { background: #FF0000; color: white; }
 
-        /* Chat Badges Layout */
+        /* Badge image styling (fallbacks use text spans) */
         .chat-badge-img {
             height: 28px;
             vertical-align: middle;
@@ -272,7 +275,7 @@
             margin-right: 6px;
         }
 
-        /* Emote Image Styling */
+        /* Emote image sizing */
         .chat-emote {
             height: 48px;
             vertical-align: middle;
@@ -298,7 +301,8 @@
         <input type="text" id="twitch-channel" value="sassinatorsteph" placeholder="Twitch">
         <input type="text" id="kick-channel" value="sassinatorsteph" placeholder="Kick">
         <input type="text" id="yt-handle" value="sassinatorsteph" placeholder="YouTube Handle">
-        <input type="text" id="yt-api-key" value="AIzaSyD7hscgvfAgyhzXpWONibTTCMrGKLjIZeg AIzaSyD5fT4WI10KS-7CgSfnn4PmmQS0RWX_f20" placeholder="API Keys">
+        <!-- Do NOT hardcode API keys here. Use the input to paste keys (space/comma-separated). -->
+        <input type="text" id="yt-api-key" value="" placeholder="API Keys (space or comma separated)">
         <button onclick="startChat()">Connect</button>
     </div>
 
@@ -426,7 +430,8 @@
                 "12": "https://static-cdn.jtvnw.net/badges/v1/b6da6872-f2f1-4ecc-ad8a-98daee453094/3"
             },
             "2000": { // Tier 2
-                "3": "https://static-cdn.jtvnw.net/badges/v1/9bde5f43-f400-4b44-b835-9cb683cc4eb4/3", 
+                "3": "https://static-cdn.jtvnw.net/badges/v1/9bde5f43-f400-4b44-b835-9cb683cc4eb4/3",
+                "6": "https://static-cdn.jtvnw.net/badges/v1/40bd7b04-21f9-432e-a07e-af0d9d7aa03c/3", 
                 "12": "https://static-cdn.jtvnw.net/badges/v1/8520b1c4-a7e7-4351-ac76-9607b6429b3c/3"
             },
             "3000": { // Tier 3
@@ -477,23 +482,33 @@ const TWITCH_CUSTOM_GIFTER_BADGES = {
     "100": "https://static-cdn.jtvnw.net/badges/v1/8343ada7-3451-434e-91c4-e82bdcf54460/2"
 };
 
+        /**
+         * Remove control characters and common IRC/YouTube wrappers from incoming chat text.
+         * This helps avoid rendering control bytes or stray newlines inside the overlay.
+         * @param {string} rawMessage
+         * @returns {string} cleaned and trimmed text
+         */
         function sanitizeChatMessage(rawMessage) {
             if (!rawMessage) return "";
 
             let cleanedMessage = rawMessage;
 
-            // 1. Remove the SOH (Start of Header) control character (\u0001 or \x01) often wrapped around actions
+            // Remove SOH (Start of Header) control characters often used around /me actions
             cleanedMessage = cleanedMessage.replace(/\u0001/g, '');
 
-            // 2. Remove the word "ACTION" case-insensitively from the start (with optional spaces/colons)
+            // Remove an initial "ACTION" token (case-insensitive) emitted by some IRC clients
             cleanedMessage = cleanedMessage.replace(/^ACTION\s*/i, '');
 
-            // 3. Remove carriage returns (\r), newlines (\n), and other stray control characters
+            // Strip carriage returns, newlines and other non-printable control characters
             cleanedMessage = cleanedMessage.replace(/[\r\n\x00-\x1F\x7F-\x9F]/g, '');
 
-            // 4. Trim extra whitespace left over from the removal
             return cleanedMessage.trim();
         }
+
+        /**
+         * Create lightweight decorative butterflies inside the overlay.
+         * These are purely visual (pointer-events: none) and randomized for variety.
+         */
         function initButterflies() {
             const container = document.getElementById('butterfly-container');
             const count = Math.random() * 20;
@@ -541,13 +556,17 @@ const TWITCH_CUSTOM_GIFTER_BADGES = {
             if (savedYtKey) document.getElementById('yt-api-key').value = savedYtKey;
         });
 
+        /**
+         * Append a chat message to the `#chat-container`.
+         * Supports platform-specific rendering for emotes and badges.
+         */
         function appendMessage(platform, username, rawText, color = '#ffffff', emotesData = null, ytDetails = null, twitchBadges = null, kickBadges = [], badgeInfo = null) {
             const safeText = sanitizeChatMessage(rawText);
 
             const messageDiv = document.createElement('div');
             messageDiv.className = `message ${platform}`;
 
-            // 1. Add Pink Butterfly on Top Left Corner (Pushed further left)
+            // Decorative butterfly for the message card
             const butterflySpan = document.createElement('span');
             butterflySpan.className = 'chat-butterfly';
             butterflySpan.textContent = '🦋';
