@@ -295,8 +295,7 @@
         <input type="text" id="twitch-channel" value="sassinatorsteph" placeholder="Twitch">
         <input type="text" id="kick-channel" value="sassinatorsteph" placeholder="Kick">
         <input type="text" id="yt-handle" value="sassinatorsteph" placeholder="YouTube Handle">
-        <input type="text" id="yt-api-key" value="AIzaSyD7hscgvfAgyhzXpWONibTTCMrGKLjIZeg AIzaSyD5fT4WI10KS-7CgSfnn4PmmQS0RWX_f20 AIzaSyDJTaNOwFBamttdz6L9CIOi5FPxH87zbv0 AIzaSyAIXesAKxwZ3lB7-OnlRhE9xM6Lz2_birQ AIzaSyAu9uVZ0GXRbHDfzvRBTmGvjrqr1nDq3us" placeholder="API Keys">
-        <button onclick="startChat()">Connect</button>
+<input type="text" id="yt-api-key" value="AIzaSyD7hscgvfAgyhzXpWONibTTCMrGKLjIZeg, AIzaSyD5fT4WI10KS-7CgSfnn4PmmQS0RWX_f20, AIzaSyDJTaNOwFBamttdz6L9CIOi5FPxH87zbv0, AIzaSyAIXesAKxwZ3lB7-OnlRhE9xM6Lz2_birQ, AIzaSyAu9uVZ0GXRbHDfzvRBTmGvjrqr1nDq3us" placeholder="API Keys">        <button onclick="startChat()">Connect</button>
     </div>
 
     <div id="chat-container"></div>
@@ -1068,135 +1067,169 @@ const TWITCH_CUSTOM_GIFTER_BADGES = {
 
             // 3. YOUTUBE
         if (ytHandle) {
-            let nextPageToken = '';
-            let activeLiveChatId = null;
-            let isInitialFetch = true; // <-- Added flag to skip old chat history
-            
-            const ytKeyInput = document.getElementById('yt-api-key');
-            const chatBox = document.getElementById('chat-container');
+    let nextPageToken = '';
+    let activeLiveChatId = null;
+    let isInitialFetch = true; 
+    
+    const ytKeyInput = document.getElementById('yt-api-key');
+    const chatBox = document.getElementById('chat-container');
 
-            // Helper to trigger the red error flash animation
-            function triggerErrorFlash() {
-                if (chatBox) {
-                    chatBox.classList.remove('error-flash');
-                    void chatBox.offsetWidth; // Trigger reflow to restart animation if already running
-                    chatBox.classList.add('error-flash');
-                }
-            }
+    function triggerErrorFlash() {
+        if (chatBox) {
+            chatBox.classList.remove('error-flash');
+            void chatBox.offsetWidth; 
+            chatBox.classList.add('error-flash');
+        }
+    }
 
-            // Extract and clean keys from the input field (supports spaces or commas)
-            let rawKeysInput = ytKeyInput?.value || '';
-            let keyPool = rawKeysInput.split(/[\s,]+/).filter(Boolean);
-            let currentKeyIndex = 0;
+    // Hardcode your keys directly here to bypass DOM input reading issues entirely
+    let keyPool = [
+        "AIzaSyD7hscgvfAgyhzXpWONibTTCMrGKLjIZeg",
+        "AIzaSyD5fT4WI10KS-7CgSfnn4PmmQS0RWX_f20",
+        "AIzaSyDJTaNOwFBamttdz6L9CIOi5FPxH87zbv0",
+        "AIzaSyAIXesAKxwZ3lB7-OnlRhE9xM6Lz2_birQ",
+        "AIzaSyAu9uVZ0GXRbHDfzvRBTmGvjrqr1nDq3us"
+    ];
 
-            function getCurrentKey() {
-                if (keyPool.length === 0) return '';
-                return keyPool[currentKeyIndex];
-            }
+    let currentKeyIndex = 0;
 
-            function rotateKey() {
-                if (keyPool.length > 1) {
-                    currentKeyIndex = (currentKeyIndex + 1) % keyPool.length;
-                    console.warn(`YouTube API key rotated. Switched to key index: ${currentKeyIndex}`);
-                }
-            }
+    console.info(`YouTube Key Pool Initialized: Found ${keyPool.length} key(s). Keys array:`, keyPool);
 
-            async function fetchYouTubeChat() {
-                let ytKey = getCurrentKey();
-                if (!ytKey) {
-                    console.error('YouTube Fetch Error: No valid API keys found in pool.');
+    let globalBackoff = 2000; 
+    const GLOBAL_MAX_BACKOFF = 1000 * 60 * 10; 
+
+    function getCurrentKey() {
+        if (keyPool.length === 0) return null;
+        currentKeyIndex = currentKeyIndex % keyPool.length;
+        return keyPool[currentKeyIndex];
+    }
+
+    function rotateKey() {
+        if (keyPool.length === 0) return;
+        currentKeyIndex = (currentKeyIndex + 1) % keyPool.length;
+        console.info(`YouTube: Rotated to next key index -> ${currentKeyIndex}`);
+    }
+
+    function maskKey(key) {
+        if (!key) return '';
+        try {
+            if (key.length > 10) return key.slice(0,4) + '...' + key.slice(-4);
+        } catch (e) {}
+        return key;
+    }
+
+    async function fetchYouTubeChat() {
+        const ytKey = getCurrentKey();
+        if (!ytKey) {
+            console.error('YouTube Fetch Error: No API keys provided in the input pool.');
+            triggerErrorFlash();
+            const delay = Math.min(globalBackoff, GLOBAL_MAX_BACKOFF);
+            globalBackoff = Math.min(globalBackoff * 2, GLOBAL_MAX_BACKOFF);
+            const t = setTimeout(fetchYouTubeChat, delay + Math.floor(Math.random() * 1000));
+            ytTimeouts.push(t);
+            return;
+        }
+
+        try {
+            console.info(`YouTube: trying key index ${currentKeyIndex} (${maskKey(ytKey)})`);
+        } catch (e) {}
+
+        try {
+            if (!activeLiveChatId) {
+                let formattedHandle = ytHandle.startsWith('@') ? ytHandle : '@' + ytHandle;
+                let searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(formattedHandle)}&type=video&eventType=live&key=${ytKey}`;
+
+                let searchRes = await fetch(searchUrl);
+
+                if (searchRes.status === 403 || searchRes.status === 429) {
                     triggerErrorFlash();
-                    ytTimeout = setTimeout(fetchYouTubeChat, 10000);
+                    console.warn(`YouTube key index ${currentKeyIndex} failed with status ${searchRes.status}. Rotating to next key.`);
+                    rotateKey();
+                    const t = setTimeout(fetchYouTubeChat, 500);
+                    ytTimeouts.push(t);
                     return;
                 }
 
-                try {
-                    if (!activeLiveChatId) {
-                        let formattedHandle = ytHandle.startsWith('@') ? ytHandle : '@' + ytHandle;
-                        let searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(formattedHandle)}&type=video&eventType=live&key=${ytKey}`;
-                        
-                        let searchRes = await fetch(searchUrl);
-                        
-                        // If 403 (Quota exceeded/Forbidden), flash red, try rotating key immediately
-                        if (searchRes.status === 403) {
-                            triggerErrorFlash();
-                            rotateKey();
-                            ytTimeout = setTimeout(fetchYouTubeChat, 2000);
-                            return;
-                        }
+                let searchData = await searchRes.json();
 
-                        let searchData = await searchRes.json();
-                        
-                        if (searchData.items && searchData.items.length > 0) {
-                            let videoId = searchData.items[0].id.videoId;
-                            let detailsUrl = `https://www.googleapis.com/youtube/v3/videos?part=liveStreamingDetails&id=${videoId}&key=${ytKey}`;
-                            let detailsRes = await fetch(detailsUrl);
-                            
-                            if (detailsRes.status === 403) {
-                                triggerErrorFlash();
-                                rotateKey();
-                                ytTimeout = setTimeout(fetchYouTubeChat, 2000);
-                                return;
-                            }
+                if (searchData.items && searchData.items.length > 0) {
+                    let videoId = searchData.items[0].id.videoId;
+                    let detailsUrl = `https://www.googleapis.com/youtube/v3/videos?part=liveStreamingDetails&id=${videoId}&key=${ytKey}`;
+                    let detailsRes = await fetch(detailsUrl);
 
-                            let detailsData = await detailsRes.json();
-                            activeLiveChatId = detailsData.items?.[0]?.liveStreamingDetails?.activeLiveChatId;
-                        }
-
-                        if (!activeLiveChatId) {
-                            ytTimeout = setTimeout(fetchYouTubeChat, 10000);
-                            return;
-                        }
-                    }
-
-                    let msgUrl = `https://www.googleapis.com/youtube/v3/liveChat/messages?liveChatId=${activeLiveChatId}&part=snippet,authorDetails&key=${ytKey}`;
-                    if (nextPageToken) msgUrl += `&pageToken=${nextPageToken}`;
-
-                    let msgRes = await fetch(msgUrl);
-                    
-                    if (msgRes.status === 403) {
-                        // Quota hit or forbidden on message polling -> flash red, rotate key
+                    if (detailsRes.status === 403 || detailsRes.status === 429) {
                         triggerErrorFlash();
+                        console.warn(`YouTube key index ${currentKeyIndex} failed during video details with status ${detailsRes.status}. Rotating to next key.`);
                         rotateKey();
-                        ytTimeout = setTimeout(fetchYouTubeChat, 2000);
+                        const t = setTimeout(fetchYouTubeChat, 500);
+                        ytTimeouts.push(t);
                         return;
                     }
 
-                    if (msgRes.status === 404) {
-                        triggerErrorFlash();
-                        activeLiveChatId = null;
-                        ytTimeout = setTimeout(fetchYouTubeChat, 5000);
-                        return;
-                    }
+                    let detailsData = await detailsRes.json();
+                    activeLiveChatId = detailsData.items?.[0]?.liveStreamingDetails?.activeLiveChatId;
+                }
 
-                    let msgData = await msgRes.json();
-                    nextPageToken = msgData.nextPageToken;
-
-                    // Only display messages if it's NOT the initial handshake batch
-                    if (!isInitialFetch && msgData.items) {
-                        msgData.items.forEach(item => {
-                            const author = item.authorDetails.displayName;
-                            const text = item.snippet.displayMessage;
-                            const messageRuns = item.snippet.textMessageDetails?.messageRuns;
-                            appendMessage('YouTube', author, text, '#ff8080', null, messageRuns);
-                        });
-                    }
-
-                    // After the first request finishes, flip the flag so future polls render normally
-                    isInitialFetch = false;
-
-                    const nextInterval = msgData.pollingIntervalMillis || 3000;
-                    ytTimeout = setTimeout(fetchYouTubeChat, nextInterval);
-
-                } catch (err) {
-                    console.error('YouTube Fetch Error:', err);
-                    triggerErrorFlash();
-                    rotateKey(); // Rotate key on general fetch exceptions just in case
-                    ytTimeout = setTimeout(fetchYouTubeChat, 5000);
+                if (!activeLiveChatId) {
+                    const t = setTimeout(fetchYouTubeChat, 10000);
+                    ytTimeouts.push(t);
+                    return;
                 }
             }
-            fetchYouTubeChat();
+
+            let msgUrl = `https://www.googleapis.com/youtube/v3/liveChat/messages?liveChatId=${activeLiveChatId}&part=snippet,authorDetails&key=${ytKey}`;
+            if (nextPageToken) msgUrl += `&pageToken=${nextPageToken}`;
+
+            let msgRes = await fetch(msgUrl);
+
+            if (msgRes.status === 403 || msgRes.status === 429) {
+                triggerErrorFlash();
+                console.warn(`YouTube key index ${currentKeyIndex} hit quota/rate limit (${msgRes.status}). Rotating to next key.`);
+                rotateKey();
+                const t = setTimeout(fetchYouTubeChat, 500);
+                ytTimeouts.push(t);
+                return;
+            }
+
+            if (msgRes.status === 404) {
+                triggerErrorFlash();
+                activeLiveChatId = null;
+                const t = setTimeout(fetchYouTubeChat, 5000);
+                ytTimeouts.push(t);
+                return;
+            }
+
+            let msgData = await msgRes.json();
+            nextPageToken = msgData.nextPageToken;
+
+            if (!isInitialFetch && msgData.items) {
+                msgData.items.forEach(item => {
+                    const author = item.authorDetails.displayName;
+                    const text = item.snippet.displayMessage;
+                    const messageRuns = item.snippet.textMessageDetails?.messageRuns;
+                    appendMessage('YouTube', author, text, '#ff8080', null, messageRuns);
+                });
+            }
+
+            globalBackoff = 2000;
+            isInitialFetch = false;
+
+            const nextInterval = msgData.pollingIntervalMillis || 3000;
+            const t = setTimeout(fetchYouTubeChat, nextInterval);
+            ytTimeouts.push(t);
+
+        } catch (err) {
+            console.error('YouTube Fetch Error:', err);
+            triggerErrorFlash();
+            rotateKey();
+            const delay = Math.min(globalBackoff, GLOBAL_MAX_BACKOFF);
+            globalBackoff = Math.min(globalBackoff * 2, GLOBAL_MAX_BACKOFF);
+            const t = setTimeout(fetchYouTubeChat, delay + Math.floor(Math.random() * 1000));
+            ytTimeouts.push(t);
         }
+    }
+    fetchYouTubeChat();
+}
     }
     </script>
 </body>
