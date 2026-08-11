@@ -277,11 +277,48 @@
         margin: 0 4px;
         display: inline-block;
       }
+      #burst-container {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        pointer-events: none;
+        z-index: 10;
+      }
+
+      .burst-item {
+        position: absolute;
+        font-size: 100px;
+        user-select: none;
+        will-change: transform, opacity;
+        animation: burstFall linear forwards;
+        filter: drop-shadow(0 0 10px rgba(255, 105, 180, 0.8));
+      }
+
+      @keyframes burstFall {
+        0% {
+          transform: translateY(-10vh) translateX(0) rotate(0deg) scale(0.5);
+          opacity: 0;
+        }
+        10% {
+          opacity: 1;
+        }
+        90% {
+          opacity: 1;
+        }
+        100% {
+          transform: translateY(110vh) translateX(calc(var(--drift) * 1px))
+            rotate(360deg) scale(1.2);
+          opacity: 0;
+        }
+      }
     </style>
   </head>
   <body>
     <div id="butterfly-container"></div>
-
+    <div id="burst-container"></div>
     <div id="config-bar">
       <input
         type="text"
@@ -403,7 +440,76 @@
       let twitchWs = null;
       let pusherInstance = null;
       const seenKickIds = new Set();
+      // Configuration mapping keywords to symbols
+      const emoteTriggers = {
+        "!prayer": "🙏",
+        "🙏": "🙏",
+        "!praise": "🙌",
+        "🙌": "🙌",
+        "!cornbread": "🇺🇸",
+        "🇺🇸": "🇺🇸",
+        "!brit": "🇬🇧",
+        "🇬🇧": "🇬🇧",
+        "!hug": "🫂",
+        "🫂": "🫂",
+      };
 
+      function checkEmoteTrigger(messageText) {
+        const lowerText = messageText.trim().toLowerCase();
+        for (const [keyword, symbol] of Object.entries(emoteTriggers)) {
+          if (lowerText.includes(keyword.toLowerCase())) {
+            launchEmoteBurst(symbol);
+            break; // Trigger immediately on first match
+          }
+        }
+      }
+
+      function registerTrigger(keyword, symbol) {
+        const now = Date.now();
+        if (!triggerHistory[keyword]) {
+          triggerHistory[keyword] = [];
+        }
+        // Filter out timestamps older than the window
+        triggerHistory[keyword] = triggerHistory[keyword].filter(
+          (timestamp) => now - timestamp < WINDOW_MS,
+        );
+        triggerHistory[keyword].push(now);
+
+        if (triggerHistory[keyword].length >= SPAM_THRESHOLD) {
+          triggerHistory[keyword] = []; // Reset after firing
+          launchEmoteBurst(symbol);
+        }
+      }
+
+      function launchEmoteBurst(symbol) {
+        const container = document.getElementById("burst-container");
+        const burstCount = 25;
+
+        for (let i = 0; i < burstCount; i++) {
+          const el = document.createElement("div");
+          el.className = "burst-item";
+          el.textContent = symbol;
+
+          const leftPos = Math.random() * 100;
+          const animDuration = 2 + Math.random() * 2.5;
+          const animDelay = Math.random() * 0.8;
+          const driftX = (Math.random() - 0.5) * 200;
+
+          el.style.left = `${leftPos}%`;
+          el.style.animationDuration = `${animDuration}s`;
+          el.style.animationDelay = `${animDelay}s`;
+          el.style.setProperty("--drift", driftX);
+
+          container.appendChild(el);
+
+          setTimeout(
+            () => {
+              el.remove();
+            },
+            (animDuration + animDelay) * 1000,
+          );
+        }
+      }
       const youtubeCustomEmotes = {
         ":hand-pink-waving:":
           "https://yt3.ggpht.com/KOxdr_z3A5h1Gb7kqnxqOCnbZrBmxI2B_tRQ453BhTWUhYAlpg5ZP8IKEBkcvRoY8grY91Q=s48-c",
@@ -778,6 +884,7 @@
         kickBadges = [],
         badgeInfo = null,
       ) {
+        checkEmoteTrigger(rawText);
         const safeText = sanitizeChatMessage(rawText);
 
         const messageDiv = document.createElement("div");
