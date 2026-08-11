@@ -285,7 +285,7 @@
       <input
         type="text"
         id="twitch-channel"
-        value="eeemsie"
+        value="sassinatorsteph"
         placeholder="Twitch"
       />
       <input
@@ -402,7 +402,7 @@
       </div>
       <button onclick="startChat()">Connect</button>
       <button>
-      <a href="https://id.twitch.tv/oauth2/authorize?client_id=62ekm0ejonw11gxaq08zi9689c9ds0&redirect_uri=https://steph-chat.vercel.app/api/auth/callback&response_type=code&scope=user:read:chat+channel:read:subscriptions+bits:read+channel:read:redemptions+moderation:read">
+      <a href="https://id.twitch.tv/oauth2/authorize?client_id=62ekm0ejonw11gxaq08zi9689c9ds0&redirect_uri=https://steph-chat.vercel.app/api/auth/callback&response_type=code&scope=user:read:chat+channel:read:subscriptions+bits:read+channel:read:redemptions+moderation:read" style="color: inherit; text-decoration: none;">
         Connect Streamer Account
       </a>
       </button>
@@ -1940,14 +1940,17 @@
     <script src="https://js.pusher.com/7.2/pusher.min.js"></script>
     <script>
       // Connect to Pusher
-      const pusher = new Pusher('YOUR_APP_KEY', {
-        cluster: 'YOUR_CLUSTER'
+      const pusher = new Pusher('cb87faabd5d085eb1b2d', {
+        cluster: 'mt1'
       });
 
       const channel = pusher.subscribe('stream-channel');
       channel.bind('new-event', function(data) {
         console.log("Event triggered!", data);
-        // TODO: Write code here to show the sub/cheer on your screen!
+        // Automatically handle and render the incoming event data on the screen
+        const platform = data.platform || "Pusher";
+        const messageText = data.message || data.text || JSON.stringify(data);
+        appendEventCard(platform, messageText);
       });
     </script>
   </body>
