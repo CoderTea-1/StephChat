@@ -1,11 +1,16 @@
+<!-- Define the document type as HTML5 -->
 <!doctype html>
+<!-- Set the root HTML element language to English[cite: 6] -->
 <html lang="en">
   <head>
+    <!-- Set character encoding to UTF-8 for broad character support[cite: 6] -->
     <meta charset="UTF-8" />
+    <!-- Set the browser window/tab title -->
     <title>Aesthetic Stream Multi-Chat</title>
-    <!-- Pusher for Kick chat -->
+    <!-- Include Pusher JavaScript library for real-time Kick chat connection[cite: 6] -->
     <script src="https://js.pusher.com/7.2/pusher.min.js"></script>
     <style>
+      /* Define global CSS variables for colors and design tokens */
       :root {
         --text-color: #ffffff;
         --primary-gradient: linear-gradient(135deg, #ff007f, #ff69b4);
@@ -14,7 +19,7 @@
         --message-bg: rgba(255, 255, 255, 0.4);
       }
 
-      /* Fully transparent body and background for OBS */
+      /* Style the main body to be transparent for OBS browser sources */
       body {
         background-color: transparent;
         color: var(--text-color);
@@ -29,7 +34,7 @@
         position: relative;
       }
 
-      /* Butterfly Background Animation Container */
+      /* Container for background floating butterfly animations */
       #butterfly-container {
         position: absolute;
         top: 0;
@@ -42,6 +47,7 @@
         color: initial;
       }
 
+      /* Individual floating butterfly styling and default animation properties */
       .butterfly {
         position: absolute;
         font-size: 24px;
@@ -52,6 +58,7 @@
         opacity: 0.85;
       }
 
+      /* Keyframes for the floating butterfly flight path */
       @keyframes fly {
         0% {
           transform: translate3d(0, 105vh, 0) rotate(0deg) scale(0.8);
@@ -74,13 +81,14 @@
         }
       }
 
+      /* Ensure config bar and chat container sit above background elements */
       #config-bar,
       #chat-container {
         position: relative;
         z-index: 2;
       }
 
-      /* Config Bar Styling */
+      /* Styling for the top configuration control bar */
       #config-bar {
         margin-bottom: 10px;
         display: flex;
@@ -95,6 +103,7 @@
         align-items: center;
       }
 
+      /* Shared styles for form inputs, buttons, and labels inside the config bar */
       input,
       button,
       label {
@@ -107,23 +116,28 @@
         outline: none;
         transition: all 0.2s ease;
       }
+      /* Highlight border color on input focus */
       input:focus {
         border-color: var(--accent-pink);
       }
+      /* Expand text input fields flexibly */
       input[type="text"] {
         flex: 1;
         min-width: 90px;
       }
+      /* Button interactive style with gradient background */
       button {
         cursor: pointer;
         background: var(--primary-gradient);
         font-weight: bold;
         border: none;
       }
+      /* Slight fade effect on button hover */
       button:hover {
         opacity: 0.9;
       }
 
+      /* Wrapper layout for color pickers and inputs */
       .color-picker-wrapper {
         display: flex;
         align-items: center;
@@ -131,13 +145,14 @@
         font-size: 11px;
         padding: 0 4px;
       }
+      /* Specific width rule for text representation inside color pickers */
       .color-picker-wrapper input[type="text"] {
         width: 150px;
         min-width: unset;
         text-align: center;
       }
 
-      /* Modern Chat Container */
+      /* Main container layout for incoming chat messages */
       #chat-container {
         flex: 1;
         overflow-y: auto;
@@ -150,6 +165,7 @@
         gap: 12px;
       }
 
+      /* Custom styling for the chat container scrollbar */
       #chat-container::-webkit-scrollbar {
         width: 4px;
       }
@@ -158,7 +174,7 @@
         border-radius: 4px;
       }
 
-      /* Base Chat Message Container */
+      /* Base layout container for an individual chat message */
       .message {
         position: relative;
         word-break: break-word;
@@ -175,19 +191,23 @@
         text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
       }
 
+      /* Platform-specific glowing border and shadow for Twitch messages */
       .message.Twitch {
         border: 2px solid rgba(179, 157, 220, 0.7);
         box-shadow: 0 4px 15px rgba(208, 183, 255, 0.25);
       }
+      /* Platform-specific glowing border and shadow for Kick messages */
       .message.Kick {
         border: 2px solid rgba(83, 252, 24, 0.7);
         box-shadow: 0 4px 15px rgba(83, 252, 24, 0.25);
       }
+      /* Platform-specific glowing border and shadow for YouTube messages */
       .message.YouTube {
         border: 2px solid rgba(255, 0, 0, 0.7);
         box-shadow: 0 4px 15px rgba(255, 0, 0, 0.25);
       }
 
+      /* Decorative aesthetic butterfly icon attached to each message box */
       .chat-butterfly {
         position: absolute;
         top: -14px;
@@ -200,6 +220,7 @@
         opacity: 1;
       }
 
+      /* Header section of the chat message containing badges and username */
       .message-header {
         display: flex;
         align-items: center;
@@ -213,6 +234,7 @@
         transition: background-color 0.3s ease;
       }
 
+      /* Content body section containing the actual chat text or emotes */
       .message-content {
         padding: 10px 14px;
         color: var(--text-color);
@@ -223,12 +245,14 @@
         transition: background-color 0.3s ease;
       }
 
+      /* Username styling configuration */
       .username {
         font-weight: 700;
         margin-left: 2px;
         margin-right: 6px;
       }
 
+      /* Keyframe animation for smooth message entry appearance */
       @keyframes fadeIn {
         from {
           opacity: 0;
@@ -240,6 +264,7 @@
         }
       }
 
+      /* Generic styling for platform identification badges */
       .badge {
         font-size: 11px;
         padding: 3px 8px;
@@ -250,19 +275,23 @@
         text-transform: uppercase;
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
       }
+      /* Platform color configuration: Twitch */
       .twitch {
         background: #9146ff;
         color: white;
       }
+      /* Platform color configuration: Kick */
       .kick {
         background: #53fc18;
         color: #0b1a05;
       }
+      /* Platform color configuration: YouTube */
       .youtube {
         background: #ff0000;
         color: white;
       }
 
+      /* Image formatting for chat badges */
       .chat-badge-img {
         height: 28px;
         vertical-align: middle;
@@ -271,12 +300,14 @@
         border-radius: 4px;
       }
 
+      /* Image formatting for inline chat emotes */
       .chat-emote {
         height: 48px;
         vertical-align: middle;
         margin: 0 4px;
         display: inline-block;
       }
+      /* Container for full-screen emote burst effects triggered by chat keywords */
       #burst-container {
         position: absolute;
         top: 0;
@@ -288,6 +319,7 @@
         z-index: 10;
       }
 
+      /* Individual falling items in an emote burst */
       .burst-item {
         position: absolute;
         font-size: 100px;
@@ -297,6 +329,7 @@
         filter: drop-shadow(0 0 10px rgba(255, 105, 180, 0.8));
       }
 
+      /* Keyframes controlling the fall, spin, and drift trajectory of burst items */
       @keyframes burstFall {
         0% {
           transform: translateY(-10vh) translateX(0) rotate(0deg) scale(0.5);
@@ -317,27 +350,32 @@
     </style>
   </head>
   <body>
+    <!-- DOM container elements for background effects and user configuration controls -->
     <div id="butterfly-container"></div>
     <div id="burst-container"></div>
     <div id="config-bar">
+      <!-- Input field for Twitch channel target -->
       <input
         type="text"
         id="twitch-channel"
         value="sassinatorsteph"
         placeholder="Twitch"
       />
+      <!-- Input field for Kick channel target -->
       <input
         type="text"
         id="kick-channel"
         value="sassinatorsteph"
         placeholder="Kick"
       />
+      <!-- Input field for YouTube handle target -->
       <input
         type="text"
         id="yt-handle"
         value="sassinatorsteph"
         placeholder="YouTube Handle"
       />
+      <!-- Input field for YouTube API keys rotation pool -->
       <input
         type="text"
         id="yt-api-key"
@@ -345,6 +383,7 @@
         placeholder="API Keys"
       />
 
+      <!-- Color picker controls for the user header info box background -->
       <div
         class="color-picker-wrapper"
         style="
@@ -378,6 +417,7 @@
         />
       </div>
 
+      <!-- Color picker controls for the message content box background -->
       <div
         class="color-picker-wrapper"
         style="
@@ -411,6 +451,7 @@
         />
       </div>
 
+      <!-- Color picker controls for chat text color configuration -->
       <div
         class="color-picker-wrapper"
         style="display: flex; gap: 10px; align-items: center"
@@ -429,18 +470,21 @@
           style="display: none"
         />
       </div>
+      <!-- Button to initialize connections to chat platforms -->
       <button onclick="startChat()">Connect</button>
     </div>
 
+    <!-- Main dynamic chat message feed injection container -->
     <div id="chat-container"></div>
 
     <script>
+      /* Global references and state variables */
       const chatContainer = document.getElementById("chat-container");
       let ytTimeouts = [];
       let twitchWs = null;
       let pusherInstance = null;
       const seenKickIds = new Set();
-      // Configuration mapping keywords to symbols
+      // Configuration mapping chat trigger keywords to specific symbol animations
       const emoteTriggers = {
         "!prayer": "🙏",
         "🙏": "🙏",
@@ -454,6 +498,7 @@
         "🫂": "🫂",
       };
 
+      /* Scans incoming chat text for mapped emote trigger keywords */
       function checkEmoteTrigger(messageText) {
         const lowerText = messageText.trim().toLowerCase();
         for (const [keyword, symbol] of Object.entries(emoteTriggers)) {
@@ -464,6 +509,7 @@
         }
       }
 
+      /* Tracks frequency of triggered keywords within a window to handle threshold-based effects */
       function registerTrigger(keyword, symbol) {
         const now = Date.now();
         if (!triggerHistory[keyword]) {
@@ -481,6 +527,7 @@
         }
       }
 
+      /* Generates a visual falling particle burst effect across the screen */
       function launchEmoteBurst(symbol) {
         const container = document.getElementById("burst-container");
         const burstCount = 25;
@@ -510,6 +557,7 @@
           );
         }
       }
+      /* Mapping dictionary for YouTube custom text emotes to their image graphic URLs */
       const youtubeCustomEmotes = {
         ":hand-pink-waving:":
           "https://yt3.ggpht.com/KOxdr_z3A5h1Gb7kqnxqOCnbZrBmxI2B_tRQ453BhTWUhYAlpg5ZP8IKEBkcvRoY8grY91Q=s48-c",
@@ -716,6 +764,7 @@
       // ==========================================
       // CUSTOM TIER & TENURE SUB BADGE CONFIG
       // ==========================================
+      /* Custom mapping of Twitch subscription tiers to tenure badge graphic URLs */
       const TWITCH_CUSTOM_SUB_BADGES = {
         1000: {
           // Tier 1
@@ -738,6 +787,7 @@
           12: "https://static-cdn.jtvnw.net/badges/v1/1e5586b1-044c-4afe-a888-1c2a5e9a0f65/3",
         },
       };
+      /* Dictionary of special Twitch badges (founders, bits leaders, moderators, etc.) */
       const TWITCH_SPECIAL_BADGES = {
         "10_gift_subs":
           "https://static-cdn.jtvnw.net/badges/v1/d333288c-65d7-4c7b-b691-cdd7b3484bf8/3",
@@ -775,6 +825,7 @@
           "https://static-cdn.jtvnw.net/badges/v1/d12a2e27-16f6-41d0-ab77-b780518f00a3/3",
       };
 
+      /* Mapping of Twitch cheer/bit milestone amounts to corresponding badge graphics */
       const TWITCH_MILESTONE_CHEER_BADGES = {
         100: "https://static-cdn.jtvnw.net/badges/v1/9da789c1-5cbc-428c-85ad-995f881aad1f/2",
         1000: "https://static-cdn.jtvnw.net/badges/v1/9a6683a1-6965-4490-af4d-af8670952fa5/3",
@@ -791,18 +842,21 @@
           "https://static-cdn.jtvnw.net/badges/v1/3ebbb569-3503-4ca1-a8de-646d6b5b743a/2",
       };
 
+      /* Custom cheer badge lookups */
       const TWITCH_CUSTOM_CHEER_BADGES = {
         1: "https://static-cdn.jtvnw.net/badges/v1/9da789c1-5cbc-428c-85ad-995f881aad1f/2",
         1000: "https://static-cdn.jtvnw.net/badges/v1/9da789c1-5cbc-428c-85ad-995f881aad1f/2",
         5000: "https://static-cdn.jtvnw.net/badges/v1/7debff95-bf6f-4b4a-88f3-7b643915ce7e/2",
       };
 
+      /* Custom gifter badge lookups */
       const TWITCH_CUSTOM_GIFTER_BADGES = {
         1: "https://static-cdn.jtvnw.net/badges/v1/052a5d41-f1cc-455c-bc7b-fe841ffaf17f/2",
         25: "https://static-cdn.jtvnw.net/badges/v1/052a5d41-f1cc-455c-bc7b-fe841ffaf17f/2",
         100: "https://static-cdn.jtvnw.net/badges/v1/8343ada7-3451-434e-91c4-e82bdcf54460/2",
       };
 
+      /* Sanitizes raw chat messages by stripping IRC control chars and action tags */
       function sanitizeChatMessage(rawMessage) {
         if (!rawMessage) return "";
 
@@ -823,6 +877,7 @@
         // 4. Trim extra whitespace left over from the removal
         return cleanedMessage.trim();
       }
+      /* Dynamically populates the background container with floating butterfly elements */
       function initButterflies() {
         const container = document.getElementById("butterfly-container");
         const count = Math.random() * 20;
@@ -846,6 +901,7 @@
         }
       }
 
+      /* Event listener initializing butterflies and loading saved configuration parameters upon page load */
       window.addEventListener("DOMContentLoaded", () => {
         initButterflies();
 
@@ -874,6 +930,7 @@
           document.getElementById("yt-api-key").value = savedYtKey;
       });
 
+      /* Core function to construct, format, and append incoming chat messages to the chat feed */
       function appendMessage(
         platform,
         username,
@@ -942,6 +999,7 @@
         chatContainer.scrollTop = chatContainer.scrollHeight;
       }
 
+      /* Helper function to generate fallback styled text or images for user badges */
       function createFallbackBadgeImage(
         imgSrc,
         altText,
@@ -978,6 +1036,7 @@
         return wrapper;
       }
 
+      /* Parses and renders Twitch chat badges with fallback text styling */
       function renderTwitchBadges(badgesString, badgeInfoString, container) {
         try {
           let subMonths = "1";
@@ -1216,6 +1275,7 @@
           console.error("Twitch Badge Error:", e);
         }
       }
+      /* Parses and renders Kick chat badges */
       function renderKickBadges(badgesArray, container) {
         try {
           badgesArray.forEach((badge) => {
@@ -1298,6 +1358,7 @@
         }
       }
 
+      /* Replaces text substrings with animated Twitch emote images based on metadata tags */
       function renderTwitchEmotes(text, emotesString, container) {
         try {
           const emoteMap = [];
@@ -1364,6 +1425,7 @@
         }
       }
 
+      /* Parses Kick custom emote shorthand syntax [emote:id:name] into images */
       function renderKickEmotes(text, container) {
         container.textContent = " ";
         const regex = /\[emote:(\d+):([^\]]+)\]/g;
@@ -1395,6 +1457,7 @@
         }
       }
 
+      /* Renders YouTube messages handling custom emoji structures and text runs */
       function renderYouTubeEmotes(fallbackText, messageRuns, container) {
         container.textContent = " ";
 
@@ -1438,6 +1501,7 @@
         }
       }
 
+      /* Parses text for colon-enclosed emoji strings and converts them to image tags */
       function parseColonEmotesIntoContainer(text, container) {
         const colonRegex = /(:[a-zA-Z0-9_-]+:)/g;
         let lastIdx = 0;
@@ -1478,6 +1542,7 @@
         }
       }
 
+      /* Main initialization function connecting to Twitch, Kick, and YouTube chat streams */
       async function startChat() {
         const twitchChan = document
           .getElementById("twitch-channel")
@@ -1811,6 +1876,7 @@
       }
     </script>
     <script>
+      /* Applies custom color and opacity selections to CSS variables and localStorage */
       function applyColor(
         pickerId,
         sliderId,
@@ -1836,6 +1902,7 @@
         document.documentElement.style.setProperty(cssVariable, rgbaString);
       }
 
+      /* Updates user header box background styling */
       function updateUserBoxColor() {
         applyColor(
           "userbox-color-picker",
@@ -1848,6 +1915,7 @@
         );
       }
 
+      /* Updates message content box background styling */
       function updateMsgBoxColor() {
         applyColor(
           "msgbox-color-picker",
@@ -1860,6 +1928,7 @@
         );
       }
 
+      /* Updates chat message text color styling */
       function updateTextColor() {
         const hex = document.getElementById("textcolor-picker").value;
 
@@ -1876,6 +1945,7 @@
         document.documentElement.style.setProperty("--text-color", rgbaString);
       }
 
+      /* Loads saved custom color preferences from localStorage on DOM content load */
       window.addEventListener("DOMContentLoaded", () => {
         const savedUserHex = localStorage.getItem("savedUserBoxHex");
         const savedUserOpacity = localStorage.getItem("savedUserBoxOpacity");
