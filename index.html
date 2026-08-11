@@ -6,10 +6,18 @@
     <!-- Pusher for Kick chat -->
     <script src="https://js.pusher.com/7.2/pusher.min.js"></script>
     <style>
+        :root {
+            --text-color: #ffffff;
+            --primary-gradient: linear-gradient(135deg, #ff007f, #ff69b4);
+            --accent-pink: #ff007f;
+            --header-bg: rgba(175, 152, 220, 0.9);
+            --message-bg: rgba(255, 255, 255, 0.4);
+        }
+
         /* Fully transparent body and background for OBS */
         body {
-            background-color: #b352ba;
-            color: #ffffff;
+            background-color: transparent;
+            color: var(--text-color);
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             margin: 0;
             padding: 10px;
@@ -22,10 +30,6 @@
         }
 
         body.error-state {
-            background-color: rgba(255, 0, 0, 0.2) !important;
-            transition: background-color 0.3s ease;
-        }
-
         /* Butterfly Background Animation Container */
         #butterfly-container {
             position: absolute;
@@ -68,7 +72,6 @@
             }
         }
 
-        /* Ensure interactive items sit safely above the butterflies */
         #config-bar, #chat-container {
             position: relative;
             z-index: 2;
@@ -86,9 +89,10 @@
             backdrop-filter: blur(8px);
             border: 1px solid rgba(255, 105, 180, 0.3);
             flex-shrink: 0;
+            align-items: center;
         }
 
-        input, button {
+        input, button, label {
             background: rgba(30, 30, 35, 0.9);
             color: white;
             border: 1px solid rgba(255, 105, 180, 0.3);
@@ -99,18 +103,31 @@
             transition: all 0.2s ease;
         }
         input:focus {
-            border-color: #ff007f;
+            border-color: var(--accent-pink);
         }
-        input { flex: 1; min-width: 120px; }
+        input[type="text"] { flex: 1; min-width: 90px; }
         button { 
             cursor: pointer; 
-            background: linear-gradient(135deg, #ff007f, #ff69b4); 
+            background: var(--primary-gradient); 
             font-weight: bold; 
             border: none;
         }
         button:hover { opacity: 0.9; }
 
-        /* Modern Chat Container with transparent wrapper */
+        .color-picker-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 11px;
+            padding: 0 4px;
+        }
+        .color-picker-wrapper input[type="text"] {
+            width: 150px;
+            min-width: unset;
+            text-align: center;
+        }
+
+        /* Modern Chat Container */
         #chat-container {
             flex: 1;
             overflow-y: auto;
@@ -123,16 +140,8 @@
             gap: 12px;
         }
 
-        #chat-container.error-flash {
-            animation: flashRed 0.6s ease-in-out 3;
-        }
-
-        /* Custom Scrollbar */
         #chat-container::-webkit-scrollbar {
             width: 4px;
-        }
-        #chat-container::-webkit-scrollbar-track {
-            background: transparent;
         }
         #chat-container::-webkit-scrollbar-thumb {
             background: rgba(255, 0, 127, 0.4);
@@ -149,35 +158,30 @@
             flex-direction: column;
             border-radius: 12px;
             backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
             animation: fadeIn 0.3s ease-out forwards;
             flex-shrink: 0;
-            margin: 10px 0 6px 0; /* Reduced space between chats */
+            margin: 10px 0 6px 0;
             overflow: visible;
             text-shadow: 0 1px 2px rgba(0,0,0,0.7);
         }
 
-        /* Platform-Specific Main Box Border */
         .message.Twitch {
             border: 2px solid rgba(179, 157, 220, 0.7);
             box-shadow: 0 4px 15px rgba(208, 183, 255, 0.25);
         }
-
         .message.Kick {
             border: 2px solid rgba(83, 252, 24, 0.7);
             box-shadow: 0 4px 15px rgba(83, 252, 24, 0.25);
         }
-
         .message.YouTube {
             border: 2px solid rgba(255, 0, 0, 0.7);
             box-shadow: 0 4px 15px rgba(255, 0, 0, 0.25);
         }
 
-        /* Pink Butterfly Pinned Further Left on Top Left Corner */
         .chat-butterfly {
             position: absolute;
             top: -14px;
-            left: -8px; /* Moved further left outside/on the edge */
+            left: -8px;
             font-size: 20px;
             z-index: 5;
             filter: drop-shadow(0 0 6px rgba(255, 105, 180, 0.9)) hue-rotate(310deg);
@@ -185,54 +189,33 @@
             pointer-events: none;
         }
 
-        /* Chatter Info Header (Matches platform background & border) */
         .message-header {
             display: flex;
             align-items: center;
             flex-wrap: wrap;
-            gap: 4px; /* Tighter gap to bring badges closer together */
+            gap: 4px;
             padding: 8px 12px;
             border-top-left-radius: 10px;
             border-top-right-radius: 10px;
             border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+            background: var(--header-bg);
+            transition: background-color 0.3s ease;
         }
 
-        .message.Twitch .message-header {
-            background: rgba(175, 152, 220, 0.9);
+        .message-content {
+            padding: 10px 14px;
+            color: var(--text-color);
+            word-break: break-word;
+            background: var(--message-bg);
+            border-bottom-left-radius: 10px;
+            border-bottom-right-radius: 10px;
+            transition: background-color 0.3s ease;
         }
 
-        .message.Kick .message-header {
-            background: rgba(83, 252, 24, 0.6);
-        }
-
-        .message.YouTube .message-header {
-            background: rgba(255, 0, 0, 0.6);
-        }
-
-        /* Tighten spacing for badges and images */
-        .badge {
-            margin-right: 2px !important;
-        }
-        .chat-badge-img {
-            margin-right: 2px !important;
-        }
-
-        /* Username styling with strong text outline/shadow for high contrast against any platform background */
         .username { 
             font-weight: 700; 
             margin-left: 2px;
             margin-right: 6px;
-            /*text-shadow: 0 0 4px #000000, 0 0 4px #000000, 0 1px 2px rgba(0,0,0,0.9);*/
-        }
-
-        /* Chat Message Text Content Body with Pink Background */
-        .message-content {
-            padding: 10px 14px;
-            color: #ffffff;
-            word-break: break-word;
-            background: rgba(255, 255, 255, 0.4); /* Pink background */
-            border-bottom-left-radius: 10px;
-            border-bottom-right-radius: 10px;
         }
 
         @keyframes fadeIn {
@@ -240,7 +223,6 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
-        /* Platform Badges */
         .badge {
             font-size: 11px;
             padding: 3px 8px;
@@ -255,7 +237,6 @@
         .kick { background: #53fc18; color: #0b1a05; }
         .youtube { background: #FF0000; color: white; }
 
-        /* Chat Badges Layout */
         .chat-badge-img {
             height: 28px;
             vertical-align: middle;
@@ -264,26 +245,11 @@
             border-radius: 4px;
         }
 
-        .username { 
-            font-weight: 700; 
-            margin-right: 6px;
-        }
-
-        /* Emote Image Styling */
         .chat-emote {
             height: 48px;
             vertical-align: middle;
             margin: 0 4px;
             display: inline-block;
-        }
-        @keyframes flashRed {
-            0% { border-color: rgba(255, 0, 0, 0.7); box-shadow: 0 4px 15px rgba(255, 0, 0, 0.25); }
-            50% { border-color: #ff0000; background: rgba(255, 0, 0, 0.5); box-shadow: 0 0 20px rgba(255, 0, 0, 0.9); }
-            100% { border-color: rgba(255, 0, 0, 0.7); box-shadow: 0 4px 15px rgba(255, 0, 0, 0.25); }
-        }
-
-        .error-flash {
-            animation: flashRed 0.6s ease-in-out 3;
         }
     </style>
 </head>
@@ -295,7 +261,29 @@
         <input type="text" id="twitch-channel" value="sassinatorsteph" placeholder="Twitch">
         <input type="text" id="kick-channel" value="sassinatorsteph" placeholder="Kick">
         <input type="text" id="yt-handle" value="sassinatorsteph" placeholder="YouTube Handle">
-<input type="text" id="yt-api-key" value="AIzaSyD7hscgvfAgyhzXpWONibTTCMrGKLjIZeg, AIzaSyD5fT4WI10KS-7CgSfnn4PmmQS0RWX_f20, AIzaSyDJTaNOwFBamttdz6L9CIOi5FPxH87zbv0, AIzaSyAIXesAKxwZ3lB7-OnlRhE9xM6Lz2_birQ, AIzaSyAu9uVZ0GXRbHDfzvRBTmGvjrqr1nDq3us" placeholder="API Keys">        <button onclick="startChat()">Connect</button>
+        <input type="text" id="yt-api-key" value="AIzaSyD7hscgvfAgyhzXpWONibTTCMrGKLjIZeg, AIzaSyD5fT4WI10KS-7CgSfnn4PmmQS0RWX_f20, AIzaSyDJTaNOwFBamttdz6L9CIOi5FPxH87zbv0, AIzaSyAIXesAKxwZ3lB7-OnlRhE9xM6Lz2_birQ, AIzaSyAu9uVZ0GXRbHDfzvRBTmGvjrqr1nDq3us" placeholder="API Keys">
+        
+        <div class="color-picker-wrapper" style="display: flex; gap: 10px; align-items: center; margin-bottom: 10px;">
+            <label for="userbox-color-picker">User Box:</label>
+            <input type="color" id="userbox-color-picker" value="#af98dc" oninput="updateUserBoxColor()">
+            <input type="range" id="userbox-opacity-slider" min="0" max="1" step="0.01" value="0.9" oninput="updateUserBoxColor()">
+            <input type="text" id="userbox-color-input" readonly style="display:none;">
+        </div>
+
+        <div class="color-picker-wrapper" style="display: flex; gap: 10px; align-items: center; margin-bottom: 10px;">
+            <label for="msgbox-color-picker">Message Box:</label>
+            <input type="color" id="msgbox-color-picker" value="#98dcb3" oninput="updateMsgBoxColor()">
+            <input type="range" id="msgbox-opacity-slider" min="0" max="1" step="0.01" value="0.9" oninput="updateMsgBoxColor()">
+            <input type="text" id="msgbox-color-input" readonly style="display:none;">
+        </div>
+
+        <div class="color-picker-wrapper" style="display: flex; gap: 10px; align-items: center;">
+            <label for="textcolor-picker">Text Color:</label>
+            <input type="color" id="textcolor-picker" value="#ffffff" oninput="updateTextColor()">
+            <input type="range" id="textcolor-opacity-slider" min="0" max="1" step="0.01" value="1" oninput="updateTextColor()">
+            <input type="text" id="textcolor-input" readonly style="display:none;">
+        </div>
+        <button onclick="startChat()">Connect</button>
     </div>
 
     <div id="chat-container"></div>
@@ -305,6 +293,7 @@
         let ytTimeouts = [];
         let twitchWs = null;
         let pusherInstance = null;
+        const seenKickIds = new Set();
 
         const youtubeCustomEmotes = {
     ":hand-pink-waving:": "https://yt3.ggpht.com/KOxdr_z3A5h1Gb7kqnxqOCnbZrBmxI2B_tRQ453BhTWUhYAlpg5ZP8IKEBkcvRoY8grY91Q=s48-c",
@@ -430,7 +419,6 @@
                 "12": "https://static-cdn.jtvnw.net/badges/v1/1e5586b1-044c-4afe-a888-1c2a5e9a0f65/3"
             }
         };
-
         const TWITCH_SPECIAL_BADGES = {
             "10_gift_subs":"https://static-cdn.jtvnw.net/badges/v1/d333288c-65d7-4c7b-b691-cdd7b3484bf8/3",
     "100_gift_subs": "https://static-cdn.jtvnw.net/badges/v1/8343ada7-3451-434e-91c4-e82bdcf54460/2",
@@ -1056,6 +1044,15 @@ const TWITCH_CUSTOM_GIFTER_BADGES = {
                         const channel = pusherInstance.subscribe(`chatrooms.${kickId}.v2`);
                         channel.bind('App\\Events\\ChatMessageEvent', (data) => {
                             if (data && data.sender) {
+                                // Ignore duplicate socket events using Kick's unique message ID
+                                if (data.id) {
+                                    if (seenKickIds.has(data.id)) return;
+                                    seenKickIds.add(data.id);
+                                    if (seenKickIds.size > 500) {
+                                        const firstItem = seenKickIds.values().next().value;
+                                        seenKickIds.delete(firstItem);
+                                    }
+                                }
                                 appendMessage('Kick', data.sender.username, data.content, '#53fc18');
                             }
                         });
@@ -1231,6 +1228,62 @@ const TWITCH_CUSTOM_GIFTER_BADGES = {
     fetchYouTubeChat();
 }
     }
+    </script>
+    <script>
+        function applyColor(pickerId, sliderId, textInputId, storageHexKey, storageOpacityKey, cssVariable, settingName) {
+            const hex = document.getElementById(pickerId).value;
+            const opacity = document.getElementById(sliderId).value;
+            
+            localStorage.setItem(storageHexKey, hex);
+            localStorage.setItem(storageOpacityKey, opacity);
+            
+            const r = parseInt(hex.slice(1, 3), 16);
+            const g = parseInt(hex.slice(3, 5), 16);
+            const b = parseInt(hex.slice(5, 7), 16);
+            
+            const rgbaString = `rgba(${r}, ${g}, ${b}, ${opacity})`;
+            document.getElementById(textInputId).value = rgbaString;
+            
+            document.documentElement.style.setProperty(cssVariable, rgbaString);
+        }
+
+        function updateUserBoxColor() {
+            applyColor('userbox-color-picker', 'userbox-opacity-slider', 'userbox-color-input', 'savedUserBoxHex', 'savedUserBoxOpacity', '--header-bg', 'user_box_color');
+        }
+
+        function updateMsgBoxColor() {
+            applyColor('msgbox-color-picker', 'msgbox-opacity-slider', 'msgbox-color-input', 'savedMsgBoxHex', 'savedMsgBoxOpacity', '--message-bg', 'msg_box_color');
+        }
+
+        function updateTextColor() {
+            applyColor('textcolor-picker', 'textcolor-opacity-slider', 'textcolor-input', 'savedTextHex', 'savedTextOpacity', '--text-color', 'text_color');
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            const savedUserHex = localStorage.getItem('savedUserBoxHex');
+            const savedUserOpacity = localStorage.getItem('savedUserBoxOpacity');
+            if (savedUserHex && savedUserOpacity) {
+                document.getElementById('userbox-color-picker').value = savedUserHex;
+                document.getElementById('userbox-opacity-slider').value = savedUserOpacity;
+                updateUserBoxColor();
+            }
+            
+            const savedMsgHex = localStorage.getItem('savedMsgBoxHex');
+            const savedMsgOpacity = localStorage.getItem('savedMsgBoxOpacity');
+            if (savedMsgHex && savedMsgOpacity) {
+                document.getElementById('msgbox-color-picker').value = savedMsgHex;
+                document.getElementById('msgbox-opacity-slider').value = savedMsgOpacity;
+                updateMsgBoxColor();
+            }
+
+            const savedTextHex = localStorage.getItem('savedTextHex');
+            const savedTextOpacity = localStorage.getItem('savedTextOpacity');
+            if (savedTextHex && savedTextOpacity) {
+                document.getElementById('textcolor-picker').value = savedTextHex;
+                document.getElementById('textcolor-opacity-slider').value = savedTextOpacity;
+                updateTextColor();
+            }
+        });
     </script>
 </body>
 </html>
