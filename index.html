@@ -6,7 +6,6 @@
     <!-- Pusher for Kick chat -->
     <script src="https://js.pusher.com/7.2/pusher.min.js"></script>
     <style>
-      /* CSS Variables for Universal Color Customization */
       :root {
         --text-color: #ffffff;
         --primary-gradient: linear-gradient(135deg, #ff007f, #ff69b4);
@@ -40,6 +39,7 @@
         overflow: hidden;
         pointer-events: none;
         z-index: 1;
+        color: initial;
       }
 
       .butterfly {
@@ -197,6 +197,7 @@
         filter: drop-shadow(0 0 6px rgba(255, 105, 180, 0.9)) hue-rotate(310deg);
         user-select: none;
         pointer-events: none;
+        opacity: 1;
       }
 
       .message-header {
@@ -385,15 +386,6 @@
           oninput="updateTextColor()"
         />
         <input
-          type="range"
-          id="textcolor-opacity-slider"
-          min="0"
-          max="1"
-          step="0.01"
-          value="1"
-          oninput="updateTextColor()"
-        />
-        <input
           type="text"
           id="textcolor-input"
           readonly
@@ -401,11 +393,6 @@
         />
       </div>
       <button onclick="startChat()">Connect</button>
-      <button>
-      <a href="https://id.twitch.tv/oauth2/authorize?client_id=62ekm0ejonw11gxaq08zi9689c9ds0&redirect_uri=https://steph-chat.vercel.app/api/auth/callback&response_type=code&scope=user:read:chat+channel:read:subscriptions+bits:read+channel:read:redemptions+moderation:read" style="color: inherit; text-decoration: none;">
-        Connect Streamer Account
-      </a>
-      </button>
     </div>
 
     <div id="chat-container"></div>
@@ -751,33 +738,7 @@
           container.appendChild(el);
         }
       }
-      function appendEventCard(platform, eventText) {
-        const messageDiv = document.createElement("div");
-        messageDiv.className = `message event-card ${platform}`;
-        messageDiv.style.cssText = `
-                            background: linear-gradient(135deg, rgba(255, 0, 127, 0.2), rgba(175, 152, 220, 0.3));
-                            border: 2px dashed var(--accent-pink);
-                            text-align: center;
-                            padding: 10px;
-                            font-weight: bold;
-                            font-size: 14px;
-                            letter-spacing: 0.5px;
-                        `;
 
-        const badge = document.createElement("span");
-        badge.className = `badge ${platform.toLowerCase()}`;
-        badge.textContent = `${platform} EVENT`;
-        messageDiv.appendChild(badge);
-
-        const textSpan = document.createElement("span");
-        textSpan.style.marginTop = "6px";
-        textSpan.style.display = "block";
-        textSpan.textContent = eventText;
-        messageDiv.appendChild(textSpan);
-
-        chatContainer.appendChild(messageDiv);
-        chatContainer.scrollTop = chatContainer.scrollHeight;
-      }
       window.addEventListener("DOMContentLoaded", () => {
         initButterflies();
 
@@ -1441,9 +1402,9 @@
           };
           twitchWs.onmessage = (event) => {
             const data = event.data;
-
-            // Handle regular chat messages
-            if (data.includes("PRIVMSG")) {
+            if (data.startsWith("PING")) {
+              twitchWs.send("PONG :tmi.twitch.tv");
+            } else if (data.includes("PRIVMSG")) {
               try {
                 const tagsPart = data.substring(0, data.indexOf("PRIVMSG"));
                 const userMatch = tagsPart.match(/display-name=([^;]*)/);
@@ -1492,81 +1453,6 @@
               } catch (e) {
                 console.error("Twitch parsing error:", e);
               }
-            } else if (data.includes("USERNOTICE")) {
-              try {
-                const tagsPart = data.substring(0, data.indexOf("USERNOTICE"));
-                const msgIdMatch = tagsPart.match(/msg-id=([^;]*)/);
-                const displayNameMatch = tagsPart.match(/display-name=([^;]*)/);
-                const bitsMatch = tagsPart.match(/bits=([^;]*)/);
-                const msgParamSubPlanMatch = tagsPart.match(
-                  /msg-param-sub-plan=([^;]*)/,
-                );
-                const msgParamMassGiftCountMatch = tagsPart.match(
-                  /msg-param-mass-gift-count=([^;]*)/,
-                );
-                const msgParamSenderCountMatch = tagsPart.match(
-                  /msg-param-sender-count=([^;]*)/,
-                );
-
-                const msgId = msgIdMatch ? msgIdMatch[1] : "";
-                const username = displayNameMatch
-                  ? displayNameMatch[1]
-                  : "A viewer";
-                const bits = bitsMatch ? bitsMatch[1] : "0";
-                const rewardTitleMatch = tagsPart.match(
-                  /msg-param-reward-title=([^;]*)/,
-                );
-                const rewardTitle = rewardTitleMatch
-                  ? decodeURIComponent(rewardTitleMatch[1].replace(/\\s/g, " "))
-                  : "Custom Reward";
-
-                if (
-                  msgId === "reward-gift" ||
-                  msgId === "custom-reward" ||
-                  tagsPart.includes("msg-id=custom-reward") ||
-                  tagsPart.includes("msg-param-reward-id")
-                ) {
-                  appendEventCard(
-                    "Twitch",
-                    `🎁 ${username} redeemed: ${rewardTitle}!`,
-                  );
-                }
-
-                if (msgId === "cheer" || parseInt(bits) > 0) {
-                  appendEventCard(
-                    "Twitch",
-                    `💎 ${username} cheered ${bits} Bits!`,
-                  );
-                } else if (["sub", "resub"].includes(msgId)) {
-                  let tier = "1";
-                  if (msgParamSubPlanMatch) {
-                    if (msgParamSubPlanMatch[1] === "2000") tier = "2";
-                    else if (msgParamSubPlanMatch[1] === "3000") tier = "3";
-                  }
-                  appendEventCard(
-                    "Twitch",
-                    `🎉 ${username} subscribed at Tier ${tier}!`,
-                  );
-                } else if (
-                  ["subgift", "anonsubgift", "communitypayforward"].includes(
-                    msgId,
-                  )
-                ) {
-                  const giftCount = msgParamMassGiftCountMatch
-                    ? msgParamMassGiftCountMatch[1]
-                    : msgParamSenderCountMatch
-                      ? msgParamSenderCountMatch[1]
-                      : "some";
-                  const sender =
-                    msgId === "anonsubgift" ? "An Anonymous Giver" : username;
-                  appendEventCard(
-                    "Twitch",
-                    `🎁 ${sender} gifted ${giftCount} community sub(s)!`,
-                  );
-                }
-              } catch (e) {
-                console.error("Twitch Event parsing error:", e);
-              }
             }
           };
         }
@@ -1607,22 +1493,6 @@
                     data.sender.username,
                     data.content,
                     "#53fc18",
-                  );
-                }
-              });
-              channel.bind("App\\Events\\SubscriptionEvent", (data) => {
-                if (data && data.username) {
-                  appendEventCard(
-                    "Kick",
-                    `🎉 ${data.username} subscribed to the channel!`,
-                  );
-                }
-              });
-              channel.bind("App\\Events\\GiftsEvent", (data) => {
-                if (data && data.username) {
-                  appendEventCard(
-                    "Kick",
-                    `🎁 ${data.username} gifted community subs!`,
                   );
                 }
               });
@@ -1796,19 +1666,6 @@
                 msgData.items.forEach((item) => {
                   const author = item.authorDetails.displayName;
                   const text = item.snippet.displayMessage;
-                  const type = item.snippet.type;
-
-                  if (
-                    type === "newSponsorEvent" ||
-                    type === "membershipMilestoneEvent"
-                  ) {
-                    appendEventCard(
-                      "YouTube",
-                      `✨ ${author} became a member or hit a milestone!`,
-                    );
-                    return;
-                  }
-
                   const messageRuns =
                     item.snippet.textMessageDetails?.messageRuns;
                   appendMessage(
@@ -1896,15 +1753,19 @@
       }
 
       function updateTextColor() {
-        applyColor(
-          "textcolor-picker",
-          "textcolor-opacity-slider",
-          "textcolor-input",
-          "savedTextHex",
-          "savedTextOpacity",
-          "--text-color",
-          "text_color",
-        );
+        const hex = document.getElementById("textcolor-picker").value;
+
+        localStorage.setItem("savedTextHex", hex);
+
+        // Convert hex to rgb components
+        const r = parseInt(hex.slice(1, 3), 16);
+        const g = parseInt(hex.slice(3, 5), 16);
+        const b = parseInt(hex.slice(5, 7), 16);
+
+        const rgbaString = `rgba(${r}, ${g}, ${b}, 1)`;
+
+        // Set the CSS variable
+        document.documentElement.style.setProperty("--text-color", rgbaString);
       }
 
       window.addEventListener("DOMContentLoaded", () => {
@@ -1927,30 +1788,10 @@
         }
 
         const savedTextHex = localStorage.getItem("savedTextHex");
-        const savedTextOpacity = localStorage.getItem("savedTextOpacity");
-        if (savedTextHex && savedTextOpacity) {
+        if (savedTextHex) {
           document.getElementById("textcolor-picker").value = savedTextHex;
-          document.getElementById("textcolor-opacity-slider").value =
-            savedTextOpacity;
           updateTextColor();
         }
-      });
-    </script>
-    <!-- Include Pusher JavaScript library -->
-    <script src="https://js.pusher.com/7.2/pusher.min.js"></script>
-    <script>
-      // Connect to Pusher
-      const pusher = new Pusher('cb87faabd5d085eb1b2d', {
-        cluster: 'mt1'
-      });
-
-      const channel = pusher.subscribe('stream-channel');
-      channel.bind('new-event', function(data) {
-        console.log("Event triggered!", data);
-        // Automatically handle and render the incoming event data on the screen
-        const platform = data.platform || "Pusher";
-        const messageText = data.message || data.text || JSON.stringify(data);
-        appendEventCard(platform, messageText);
       });
     </script>
   </body>
