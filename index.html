@@ -470,6 +470,13 @@
           style="display: none"
         />
       </div>
+
+      <!-- Emote Wall Configuration Toggles (Dynamically Generated) -->
+      <div id="emote-toggles-container" style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center; width: 100%; border-top: 1px solid rgba(255, 105, 180, 0.3); padding-top: 8px; margin-top: 4px;">
+        <span style="font-size: 12px; font-weight: bold; color: var(--accent-pink);">Emote Walls:</span>
+        <!-- Checkboxes will be injected here automatically by JavaScript -->
+      </div>
+
       <!-- Button to initialize connections to chat platforms -->
       <button onclick="startChat()">Connect</button>
       <button onclick="clearAllCookies()">Clear Cookies</button>
@@ -588,19 +595,71 @@
         ],
       };
 
-      /* Scans incoming chat text for mapped emote trigger keywords */
+      /* Automatically generate checkboxes from emoteTriggers and load saved states */
+      function initEmoteToggles() {
+        const container = document.getElementById('emote-toggles-container');
+        if (!container) return;
+
+        // Clear existing injected toggles if re-running
+        const existingToggles = container.querySelectorAll('.emote-toggle-label');
+        existingToggles.forEach(el => el.remove());
+
+        // Loop through the keys of your emoteTriggers list
+        Object.keys(emoteTriggers).forEach(keyword => {
+          const label = document.createElement('label');
+          label.className = 'emote-toggle-label';
+          label.style.cssText = 'display: flex; align-items: center; gap: 4px; cursor: pointer; font-size: 12px; color: var(--text-color, #fff);';
+
+          const checkbox = document.createElement('input');
+          checkbox.type = 'checkbox';
+          checkbox.className = 'emote-toggle';
+          checkbox.dataset.keyword = keyword;
+
+          // Load saved state from localStorage, default to true if not found
+          const savedState = localStorage.getItem(`emote_toggle_${keyword}`);
+          checkbox.checked = savedState !== null ? savedState === 'true' : true;
+
+          // Save state to localStorage whenever toggled
+          checkbox.addEventListener('change', () => {
+            localStorage.setItem(`emote_toggle_${keyword}`, checkbox.checked);
+          });
+
+          // Capitalize the label text nicely
+          const displayName = keyword.replace(/^!/, '');
+          const formattedName = displayName.charAt(0).toUpperCase() + displayName.slice(1);
+
+          label.appendChild(checkbox);
+          label.appendChild(document.createTextNode(' ' + formattedName));
+          container.appendChild(label);
+        });
+      }
+
+      /* Scans incoming chat text for mapped emote trigger keywords if enabled */
       function checkEmoteTrigger(messageText) {
         const lowerText = messageText.trim().toLowerCase();
         for (const [keyword, values] of Object.entries(emoteTriggers)) {
           if (lowerText.includes(keyword.toLowerCase())) {
+            // Find the dynamically created toggle checkbox corresponding to this keyword
+            const checkbox = document.querySelector(`.emote-toggle[data-keyword="${keyword}"]`);
+            
+            // If the checkbox exists and is unchecked, skip triggering
+            if (checkbox && !checkbox.checked) {
+              continue; 
+            }
+
             if (Array.isArray(values) && values.length > 0) {
               launchEmoteBurst(values);
             }
-            break; // Trigger immediately on first match
+            break; // Trigger immediately on first matching active trigger
           }
         }
       }
 
+      // Call this during your page/widget initialization script
+      document.addEventListener('DOMContentLoaded', () => {
+        initEmoteToggles();
+      });
+      
       /* Helper function to determine if a string is an image URL/path */
       function isImageUrl(str) {
         return (
