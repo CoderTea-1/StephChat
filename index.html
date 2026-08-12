@@ -16,7 +16,7 @@
         --primary-gradient: linear-gradient(135deg, #ff007f, #ff69b4);
         --accent-pink: #ff007f;
         --header-bg: rgba(175, 152, 220, 0.9);
-        --message-bg: rgba(255, 255, 255, 0.4);
+        --message-bg: rgba(255, 105, 180, 0.6);
       }
 
       /* Style the main body to be transparent for OBS browser sources */
@@ -431,7 +431,7 @@
         <input
           type="color"
           id="msgbox-color-picker"
-          value="#98dcb3"
+          value="#ff69b4"
           oninput="updateMsgBoxColor()"
         />
         <input
@@ -472,6 +472,7 @@
       </div>
       <!-- Button to initialize connections to chat platforms -->
       <button onclick="startChat()">Connect</button>
+      <button onclick="clearAllCookies()">Clear Cookies</button>
     </div>
 
     <!-- Main dynamic chat message feed injection container -->
@@ -485,57 +486,154 @@
       let pusherInstance = null;
       const seenKickIds = new Set();
       // Configuration mapping chat trigger keywords to specific symbol animations
+      // Configuration mapping chat trigger keywords to specific symbol animations
       const emoteTriggers = {
-        "!prayer": "🙏",
-        "🙏": "🙏",
-        "!praise": "🙌",
-        "🙌": "🙌",
-        "!cornbread": "🇺🇸",
-        "🇺🇸": "🇺🇸",
-        "!brit": "🇬🇧",
-        "🇬🇧": "🇬🇧",
-        "!hug": "🫂",
-        "🫂": "🫂",
+        prayer: ["🙏"],
+        praise: ["🙌"],
+        "!cornbread": [
+          "https://static.vecteezy.com/system/resources/previews/044/755/342/non_2x/cornbread-against-transparent-background-free-png.png",
+        ],
+        "!brit": ["🇬🇧"],
+        hug: ["https://files.kick.com/emotes/980711/fullsize"],
+        grounded: ["https://files.kick.com/emotes/980532/fullsize"],
+        bonk: [
+          "https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_d22eb06192f3427e956d4a6373053c06/default/dark/4.0",
+        ],
+        "!marker": [
+          "https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_1131b76bea8142718a730799625cf0aa/default/dark/4.0",
+        ],
+        "!clip": [
+          "https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_1131b76bea8142718a730799625cf0aa/default/dark/4.0",
+        ],
+        lurk: [
+          "https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_0bcbac13d1224d548c34c03b84a4e06e/default/dark/4.0",
+        ],
+        ban: [
+          "https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_cbd1abdccdc740e4a1de4826e9e971b9/default/dark/4.0",
+        ],
+        shank: [
+          "https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_2405ae7db22b46eaafd10b8cba206508/default/dark/4.0",
+        ],
+        yay: [
+          "https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_b925f7c5716b4cd2a9bcfe52ce0009a5/default/dark/4.0",
+        ],
+        "no you": [
+          "https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_9825374f890a43788ba64ff15ba2216b/default/dark/4.0",
+        ],
+        "no u": [
+          "https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_9825374f890a43788ba64ff15ba2216b/default/dark/4.0",
+        ],
+        sus: [
+          "https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_ae9fa1ed598f4a8bbd063cb9fd90f50b/default/dark/4.0",
+        ],
+        zacchaeus: [
+          "https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_b59ee2a0f92240739c2677741743f1b1/default/dark/4.0",
+          "🐟",
+        ],
+        zack: [
+          "https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_0dc70c172b92455fa78bca049f53f4dc/default/dark/4.0",
+        ],
+        moonbunny: [
+          "https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_1ea5fcaba3d2493580ca78b078d15342/default/dark/4.0",
+        ],
+        pree: [
+          "https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_c26721bf8e8f4c9aacdd24bb99715fba/default/dark/4.0",
+        ],
+        ladyB: [
+          "https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_1a37058d6d0b4899bb886e0fb68fdf81/default/dark/4.0",
+          "https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_1f965d1b405d4c2fa8b1b39558ef8477/default/dark/4.0",
+        ],
+        trevor: ["😏"],
+        matthew: [
+          "https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_825b6831bbb94e51aa5ba4cf77f0c460/default/dark/4.0",
+        ],
+        prime: ["👨🏻‍💼", "⛪"],
+        garrett: [
+          "https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_c3d3aaf3f5ea4401a7f1d2a6e45b80bf/default/light/3.0",
+        ],
+        masster_tea: [
+          "https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_e775c069d9a549cdb6a57441afe27819/default/dark/4.0",
+        ],
+        master_tea: [
+          "https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_e775c069d9a549cdb6a57441afe27819/default/dark/4.0",
+        ],
+        rusher: [
+          "https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fwww.gnc.com%2Fdw%2Fimage%2Fv2%2FBBLB_PRD%2Fon%2Fdemandware.static%2F-%2FSites-master-catalog-gnc%2Fdefault%2Fdwd782e08f%2Fhi-res%2F561570_Alani_Energy_Drink_Cherry_Twist_Can_Front.png%3Fsw%3D1500%26sh%3D1500%26sm%3Dfit&f=1&nofb=1&ipt=10c15a47e7904ac9e7e2cb370e8f96d6cf04397b00acefb7bc3ac5366113301d",
+          "https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_a2dfbbbbf66f4a75b0f53db841523e6c/default/dark/4.0",
+        ],
+        remmant: [
+          "https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_a2dfbbbbf66f4a75b0f53db841523e6c/default/dark/4.0",
+        ],
+        coley: [
+          "https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_a2dfbbbbf66f4a75b0f53db841523e6c/default/dark/4.0",
+        ],
+        opacoley: [
+          "https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_a2dfbbbbf66f4a75b0f53db841523e6c/default/dark/4.0",
+        ],
+        squel: [
+          "https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_a2dfbbbbf66f4a75b0f53db841523e6c/default/dark/4.0",
+          "☕",
+        ],
+        phoen: [
+          "https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_a2dfbbbbf66f4a75b0f53db841523e6c/default/dark/4.0",
+          "https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_37559746f37b42a09bb1b49da9e1db4d/default/dark/4.0",
+        ],
+        jean: [
+          "https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_a2dfbbbbf66f4a75b0f53db841523e6c/default/dark/4.0",
+          "🦆",
+          "https://emojipedia.org/_next/image?url=https%3A%2F%2Fis.zobj.net%2Fimage-server%2Fv1%2Fimages%3Fr%3DVp1vIZBSLfzih5Pc5Gslhpcjb0ml-ZLJZq7edYdR-_cfeeq6ov8F67gADNjTGbRTdIAyYSJZeIJHeOWQmR5MVQjis3P4bFgrAAeDKT4WXfD1jNJmIvVuaGTLbHsJytfy-7KcyHMhpIaFICug1MMQ23hwvW1Wz5IVqBpBk-_NmZYqQhA_HzCOoemtgPB9eTJIiu8A99pC7fFBS-2L4SCbCSVhH-xrmLSAf0Kay2ZrYifAPbKWghFKRnXJb84&w=256&q=75",
+        ],
+        mod: [
+          "https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_a2dfbbbbf66f4a75b0f53db841523e6c/default/dark/4.0",
+        ],
       };
 
       /* Scans incoming chat text for mapped emote trigger keywords */
       function checkEmoteTrigger(messageText) {
         const lowerText = messageText.trim().toLowerCase();
-        for (const [keyword, symbol] of Object.entries(emoteTriggers)) {
+        for (const [keyword, values] of Object.entries(emoteTriggers)) {
           if (lowerText.includes(keyword.toLowerCase())) {
-            launchEmoteBurst(symbol);
+            if (Array.isArray(values) && values.length > 0) {
+              launchEmoteBurst(values);
+            }
             break; // Trigger immediately on first match
           }
         }
       }
 
-      /* Tracks frequency of triggered keywords within a window to handle threshold-based effects */
-      function registerTrigger(keyword, symbol) {
-        const now = Date.now();
-        if (!triggerHistory[keyword]) {
-          triggerHistory[keyword] = [];
-        }
-        // Filter out timestamps older than the window
-        triggerHistory[keyword] = triggerHistory[keyword].filter(
-          (timestamp) => now - timestamp < WINDOW_MS,
+      /* Helper function to determine if a string is an image URL/path */
+      function isImageUrl(str) {
+        return (
+          str.startsWith("http://") ||
+          str.startsWith("https://") ||
+          str.startsWith("/") ||
+          str.includes(".")
         );
-        triggerHistory[keyword].push(now);
-
-        if (triggerHistory[keyword].length >= SPAM_THRESHOLD) {
-          triggerHistory[keyword] = []; // Reset after firing
-          launchEmoteBurst(symbol);
-        }
       }
 
-      /* Generates a visual falling particle burst effect across the screen */
-      function launchEmoteBurst(symbol) {
+      /* Generates a visual falling particle burst effect using a random mix of the provided emojis or images */
+      function launchEmoteBurst(values) {
         const container = document.getElementById("burst-container");
         const burstCount = 25;
 
         for (let i = 0; i < burstCount; i++) {
           const el = document.createElement("div");
           el.className = "burst-item";
-          el.textContent = symbol;
+
+          // Pick a random item from the array for each particle
+          const item = values[Math.floor(Math.random() * values.length)];
+
+          if (isImageUrl(item)) {
+            const img = document.createElement("img");
+            img.src = item;
+            img.alt = "emote";
+            img.style.width = "100px";
+            img.style.height = "100px";
+            img.style.objectFit = "contain";
+            el.appendChild(img);
+          } else {
+            el.textContent = item;
+          }
 
           const leftPos = Math.random() * 100;
           const animDuration = 2 + Math.random() * 2.5;
@@ -1971,6 +2069,21 @@
           updateTextColor();
         }
       });
+    </script>
+    <script>
+      function clearAllCookies() {
+        // If you store specific color settings in localStorage (e.g., custom themes or background colors):
+        localStorage.removeItem("savedBackgroundColor"); // Replace with your actual color storage key(s)
+        localStorage.removeItem("savedTheme"); // Add any other color/appearance keys you use
+
+        localStorage.clear();
+
+        // Reset form fields or visual elements back to default immediately
+        console.log("Saved colors and preferences have been cleared.");
+
+        // Reload the page to apply defaults
+        location.reload();
+      }
     </script>
   </body>
 </html>
