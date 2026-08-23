@@ -1,0 +1,337 @@
+/* Define global CSS variables for colors and design tokens */
+:root {
+  --text-color: #ffffff;
+  --primary-gradient: linear-gradient(135deg, #ff007f, #ff69b4);
+  --accent-pink: #ff007f;
+  --header-bg: rgba(175, 152, 220, 0.9);
+  --message-bg: rgba(255, 105, 180, 0.6);
+}
+
+/* Style the main body to be transparent for OBS browser sources */
+body {
+  background-color: transparent;
+  color: var(--text-color);
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  margin: 0;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  box-sizing: border-box;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Container for background floating butterfly animations */
+#butterfly-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 1;
+  color: initial;
+}
+
+/* Individual floating butterfly styling and default animation properties */
+.butterfly {
+  position: absolute;
+  font-size: 24px;
+  user-select: none;
+  will-change: transform, opacity;
+  animation: fly linear infinite;
+  filter: drop-shadow(0 0 8px rgba(255, 105, 180, 0.9)) hue-rotate(310deg);
+  opacity: 0.85;
+}
+
+/* Keyframes for the floating butterfly flight path */
+@keyframes fly {
+  0% {
+    transform: translate3d(0, 105vh, 0) rotate(0deg) scale(0.8);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.95;
+  }
+  50% {
+    transform: translate3d(calc(var(--rand-x) * 1px), 50vh, 0)
+      rotate(45deg) scale(1.15);
+  }
+  90% {
+    opacity: 0.95;
+  }
+  100% {
+    transform: translate3d(calc(var(--rand-x) * -1px), -10vh, 0)
+      rotate(90deg) scale(0.8);
+    opacity: 0;
+  }
+}
+
+/* Ensure config bar and chat container sit above background elements */
+#config-bar,
+#chat-container {
+  position: relative;
+  z-index: 2;
+}
+
+/* Styling for the top configuration control bar */
+#config-bar {
+  margin-bottom: 10px;
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  background: rgba(20, 20, 25, 0.95);
+  padding: 10px;
+  border-radius: 8px;
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 105, 180, 0.3);
+  flex-shrink: 0;
+  align-items: center;
+}
+
+/* Shared styles for form inputs, buttons, and labels inside the config bar */
+input,
+button,
+label {
+  background: rgba(30, 30, 35, 0.9);
+  color: white;
+  border: 1px solid rgba(255, 105, 180, 0.3);
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  outline: none;
+  transition: all 0.2s ease;
+}
+/* Highlight border color on input focus */
+input:focus {
+  border-color: var(--accent-pink);
+}
+/* Expand text input fields flexibly */
+input[type="text"] {
+  flex: 1;
+  min-width: 90px;
+}
+/* Button interactive style with gradient background */
+button {
+  cursor: pointer;
+  background: var(--primary-gradient);
+  font-weight: bold;
+  border: none;
+}
+/* Slight fade effect on button hover */
+button:hover {
+  opacity: 0.9;
+}
+
+/* Wrapper layout for color pickers and inputs */
+.color-picker-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  padding: 0 4px;
+}
+/* Specific width rule for text representation inside color pickers */
+.color-picker-wrapper input[type="text"] {
+  width: 150px;
+  min-width: unset;
+  text-align: center;
+}
+
+/* Main container layout for incoming chat messages */
+#chat-container {
+  flex: 1;
+  overflow-y: auto;
+  background: transparent;
+  padding: 12px;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+/* Custom styling for the chat container scrollbar */
+#chat-container::-webkit-scrollbar {
+  width: 4px;
+}
+#chat-container::-webkit-scrollbar-thumb {
+  background: rgba(255, 0, 127, 0.4);
+  border-radius: 4px;
+}
+
+/* Base layout container for an individual chat message */
+.message {
+  position: relative;
+  word-break: break-word;
+  font-size: 16px;
+  line-height: 1.4;
+  display: flex;
+  flex-direction: column;
+  border-radius: 12px;
+  backdrop-filter: blur(8px);
+  animation: fadeIn 0.3s ease-out forwards;
+  flex-shrink: 0;
+  margin: 10px 0 6px 0;
+  overflow: visible;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
+}
+
+/* Platform-specific glowing border and shadow for Twitch messages */
+.message.Twitch {
+  border: 2px solid rgba(179, 157, 220, 0.7);
+  box-shadow: 0 4px 15px rgba(208, 183, 255, 0.25);
+}
+/* Platform-specific glowing border and shadow for Kick messages */
+.message.Kick {
+  border: 2px solid rgba(83, 252, 24, 0.7);
+  box-shadow: 0 4px 15px rgba(83, 252, 24, 0.25);
+}
+/* Platform-specific glowing border and shadow for YouTube messages */
+.message.YouTube {
+  border: 2px solid rgba(255, 0, 0, 0.7);
+  box-shadow: 0 4px 15px rgba(255, 0, 0, 0.25);
+}
+
+/* Decorative aesthetic butterfly icon attached to each message box */
+.chat-butterfly {
+  position: absolute;
+  top: -14px;
+  left: -8px;
+  font-size: 20px;
+  z-index: 5;
+  filter: drop-shadow(0 0 6px rgba(255, 105, 180, 0.9)) hue-rotate(310deg);
+  user-select: none;
+  pointer-events: none;
+  opacity: 1;
+}
+
+/* Header section of the chat message containing badges and username */
+.message-header {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 8px 12px;
+  border-top-left-radius: 10px;
+  border-top-right-radius: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+  background: var(--header-bg);
+  transition: background-color 0.3s ease;
+}
+
+/* Content body section containing the actual chat text or emotes */
+.message-content {
+  padding: 10px 14px;
+  color: var(--text-color);
+  word-break: break-word;
+  background: var(--message-bg);
+  border-bottom-left-radius: 10px;
+  border-bottom-right-radius: 10px;
+  transition: background-color 0.3s ease;
+}
+
+/* Username styling configuration */
+.username {
+  font-weight: 700;
+  margin-left: 2px;
+  margin-right: 6px;
+}
+
+/* Keyframe animation for smooth message entry appearance */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Generic styling for platform identification badges */
+.badge {
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 5px;
+  margin-right: 8px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+/* Platform color configuration: Twitch */
+.twitch {
+  background: #9146ff;
+  color: white;
+}
+/* Platform color configuration: Kick */
+.kick {
+  background: #53fc18;
+  color: #0b1a05;
+}
+/* Platform color configuration: YouTube */
+.youtube {
+  background: #ff0000;
+  color: white;
+}
+
+/* Image formatting for chat badges */
+.chat-badge-img {
+  height: 28px;
+  vertical-align: middle;
+  margin-right: 6px;
+  display: inline-block;
+  border-radius: 4px;
+}
+
+/* Image formatting for inline chat emotes */
+.chat-emote {
+  height: 48px;
+  vertical-align: middle;
+  margin: 0 4px;
+  display: inline-block;
+}
+/* Container for full-screen emote burst effects triggered by chat keywords */
+#burst-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* Individual falling items in an emote burst */
+.burst-item {
+  position: absolute;
+  font-size: 100px;
+  user-select: none;
+  will-change: transform, opacity;
+  animation: burstFall linear forwards;
+  filter: drop-shadow(0 0 10px rgba(255, 105, 180, 0.8));
+}
+
+/* Keyframes controlling the fall, spin, and drift trajectory of burst items */
+@keyframes burstFall {
+  0% {
+    transform: translateY(-10vh) translateX(0) rotate(0deg) scale(0.5);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(110vh) translateX(calc(var(--drift) * 1px))
+      rotate(360deg) scale(1.2);
+    opacity: 0;
+  }
+}

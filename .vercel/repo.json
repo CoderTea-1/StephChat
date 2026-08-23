@@ -1,0 +1,11 @@
+{
+  "remoteName": "origin",
+  "projects": [
+    {
+      "id": "prj_mYtG3B8yEkmnNYba3zMYmu3kCzNM",
+      "name": "test-chat",
+      "directory": ".",
+      "orgId": "team_wrBbfwTcArMIno1sIrEYRIJb"
+    }
+  ]
+}
