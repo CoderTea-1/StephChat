@@ -7,15 +7,17 @@ const seenKickIds = new Set();
 
 // Configuration mapping chat trigger keywords to specific symbol animations
 const emoteTriggers = {
-  prayer: ["🙏"],
-  praise: ["🙌"],
+  "!prayer": ["🙏"],
+  "!praise": ["🙌"],
   "!cornbread": [
     "https://static.vecteezy.com/system/resources/previews/044/755/342/non_2x/cornbread-against-transparent-background-free-png.png",
   ],
   "!brit": ["🇬🇧"],
-  hug: ["https://files.kick.com/emotes/980711/fullsize"],
-  grounded: ["https://files.kick.com/emotes/980532/fullsize"],
-  bonk: [
+  "!boop": ["https://media.tenor.com/x4EkBqnQJysAAAAi/boop.gif"],
+  "!beep": [],
+  "!hug": ["https://files.kick.com/emotes/980711/fullsize", "🫂"],
+  "!grounded": ["https://files.kick.com/emotes/980532/fullsize"],
+  "!bonk": [
     "https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_d22eb06192f3427e956d4a6373053c06/default/dark/4.0",
   ],
   "!marker": [
@@ -24,13 +26,18 @@ const emoteTriggers = {
   "!clip": [
     "https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_1131b76bea8142718a730799625cf0aa/default/dark/4.0",
   ],
-  lurk: [
+  "!marker": [
+    "https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_1131b76bea8142718a730799625cf0aa/default/dark/4.0",
+  ],
+  "!church": ["⛪"],
+  "!prime": ["👨🏻‍💼", "⛪"],
+  "!lurk": [
     "https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_0bcbac13d1224d548c34c03b84a4e06e/default/dark/4.0",
   ],
-  ban: [
+  "!ban": [
     "https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_cbd1abdccdc740e4a1de4826e9e971b9/default/dark/4.0",
   ],
-  shank: [
+  "!shank": [
     "https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_2405ae7db22b46eaafd10b8cba206508/default/dark/4.0",
   ],
   yay: [
@@ -45,62 +52,11 @@ const emoteTriggers = {
   sus: [
     "https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_ae9fa1ed598f4a8bbd063cb9fd90f50b/default/dark/4.0",
   ],
-  zacchaeus: [
-    "https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_b59ee2a0f92240739c2677741743f1b1/default/dark/4.0",
-    "🐟",
-  ],
-  zack: [
-    "https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_0dc70c172b92455fa78bca049f53f4dc/default/dark/4.0",
-  ],
-  moonbunny: [
-    "https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_1ea5fcaba3d2493580ca78b078d15342/default/dark/4.0",
-  ],
-  pree: [
-    "https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_c26721bf8e8f4c9aacdd24bb99715fba/default/dark/4.0",
-  ],
-  ladyB: [
-    "https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_1a37058d6d0b4899bb886e0fb68fdf81/default/dark/4.0",
-    "https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_1f965d1b405d4c2fa8b1b39558ef8477/default/dark/4.0",
-  ],
-  trevor: ["😏"],
-  matthew: [
-    "https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_825b6831bbb94e51aa5ba4cf77f0c460/default/dark/4.0",
-  ],
-  prime: ["👨🏻‍💼", "⛪"],
   garrett: [
     "https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_c3d3aaf3f5ea4401a7f1d2a6e45b80bf/default/light/3.0",
   ],
-  masster_tea: [
-    "https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_e775c069d9a549cdb6a57441afe27819/default/dark/4.0",
-  ],
-  master_tea: [
-    "https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_e775c069d9a549cdb6a57441afe27819/default/dark/4.0",
-  ],
-  rusher: [
-    "https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fwww.gnc.com%2Fdw%2Fimage%2Fv2%2FBBLB_PRD%2Fon%2Fdemandware.static%2F-%2FSites-master-catalog-gnc%2Fdefault%2Fdwd782e08f%2Fhi-res%2F561570_Alani_Energy_Drink_Cherry_Twist_Can_Front.png%3Fsw%3D1500%26sh%3D1500%26sm%3Dfit&f=1&nofb=1&ipt=10c15a47e7904ac9e7e2cb370e8f96d6cf04397b00acefb7bc3ac5366113301d",
-    "https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_a2dfbbbbf66f4a75b0f53db841523e6c/default/dark/4.0",
-  ],
-  remmant: [
-    "https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_a2dfbbbbf66f4a75b0f53db841523e6c/default/dark/4.0",
-  ],
-  coley: [
-    "https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_a2dfbbbbf66f4a75b0f53db841523e6c/default/dark/4.0",
-  ],
-  opacoley: [
-    "https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_a2dfbbbbf66f4a75b0f53db841523e6c/default/dark/4.0",
-  ],
-  squel: [
-    "https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_a2dfbbbbf66f4a75b0f53db841523e6c/default/dark/4.0",
-    "☕",
-  ],
-  phoen: [
-    "https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_a2dfbbbbf66f4a75b0f53db841523e6c/default/dark/4.0",
-    "https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_37559746f37b42a09bb1b49da9e1db4d/default/dark/4.0",
-  ],
-  jean: [
-    "https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_a2dfbbbbf66f4a75b0f53db841523e6c/default/dark/4.0",
-    "🦆",
-    "https://emojipedia.org/_next/image?url=https%3A%2F%2Fis.zobj.net%2Fimage-server%2Fv1%2Fimages%3Fr%3DVp1vIZBSLfzih5Pc5Gslhpcjb0ml-ZLJZq7edYdR-_cfeeq6ov8F67gADNjTGbRTdIAyYSJZeIJHeOWQmR5MVQjis3P4bFgrAAeDKT4WXfD1jNJmIvVuaGTLbHsJytfy-7KcyHMhpIaFICug1MMQ23hwvW1Wz5IVqBpBk-_NmZYqQhA_HzCOoemtgPB9eTJIiu8A99pC7fFBS-2L4SCbCSVhH-xrmLSAf0Kay2ZrYifAPbKWghFKRnXJb84&w=256&q=75",
+  "!hubby": [
+    "https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_c3d3aaf3f5ea4401a7f1d2a6e45b80bf/default/light/3.0",
   ],
   mod: [
     "https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_a2dfbbbbf66f4a75b0f53db841523e6c/default/dark/4.0",
@@ -109,34 +65,38 @@ const emoteTriggers = {
 
 /* Automatically generate checkboxes from emoteTriggers and load saved states */
 function initEmoteToggles() {
-  const container = document.getElementById('emote-toggles-container');
+  const container = document.getElementById("emote-toggles-container");
   if (!container) return;
 
-  const existingToggles = container.querySelectorAll('.emote-toggle-label');
-  existingToggles.forEach(el => el.remove());
+  const existingToggles = container.querySelectorAll(".emote-toggle-label");
+  existingToggles.forEach((el) => el.remove());
 
-  Object.keys(emoteTriggers).forEach(keyword => {
-    const label = document.createElement('label');
-    label.className = 'emote-toggle-label';
-    label.style.cssText = 'display: flex; align-items: center; gap: 4px; cursor: pointer; font-size: 12px; color: var(--text-color, #fff);';
+  Object.keys(emoteTriggers).forEach((keyword) => {
+    const label = document.createElement("label");
+    label.className = "emote-toggle-label";
+    label.style.cssText =
+      "display: flex; align-items: center; gap: 4px; cursor: pointer; font-size: 12px; color: var(--text-color, #fff);";
 
-    const checkbox = document.createElement('input');
-    checkbox.type = 'checkbox';
-    checkbox.className = 'emote-toggle';
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.className = "emote-toggle";
+    // Match the exact ID format used in local storage / Redis keys
+    checkbox.id = `emote_toggle_${keyword}`;
     checkbox.dataset.keyword = keyword;
 
     const savedState = localStorage.getItem(`emote_toggle_${keyword}`);
-    checkbox.checked = savedState !== null ? savedState === 'true' : true;
+    checkbox.checked = savedState !== null ? savedState === "true" : true;
 
-    checkbox.addEventListener('change', () => {
+    checkbox.addEventListener("change", () => {
       localStorage.setItem(`emote_toggle_${keyword}`, checkbox.checked);
     });
 
-    const displayName = keyword.replace(/^!/, '');
-    const formattedName = displayName.charAt(0).toUpperCase() + displayName.slice(1);
+    const displayName = keyword.replace(/^!/, "");
+    const formattedName =
+      displayName.charAt(0).toUpperCase() + displayName.slice(1);
 
     label.appendChild(checkbox);
-    label.appendChild(document.createTextNode(' ' + formattedName));
+    label.appendChild(document.createTextNode(" " + formattedName));
     container.appendChild(label);
   });
 }
@@ -146,23 +106,21 @@ function checkEmoteTrigger(messageText) {
   const lowerText = messageText.trim().toLowerCase();
   for (const [keyword, values] of Object.entries(emoteTriggers)) {
     if (lowerText.includes(keyword.toLowerCase())) {
-      const checkbox = document.querySelector(`.emote-toggle[data-keyword="${keyword}"]`);
-      
+      const checkbox = document.querySelector(
+        `.emote-toggle[data-keyword="${keyword}"]`,
+      );
+
       if (checkbox && !checkbox.checked) {
-        continue; 
+        continue;
       }
 
       if (Array.isArray(values) && values.length > 0) {
         launchEmoteBurst(values);
       }
-      break; 
+      break;
     }
   }
 }
-
-document.addEventListener('DOMContentLoaded', () => {
-  initEmoteToggles();
-});
 
 /* Helper function to determine if a string is an image URL/path */
 function isImageUrl(str) {
@@ -252,33 +210,6 @@ function initButterflies() {
     container.appendChild(el);
   }
 }
-
-/* Event listener initializing butterflies and loading saved configuration parameters upon page load */
-window.addEventListener("DOMContentLoaded", () => {
-  initButterflies();
-
-  const urlParams = new URLSearchParams(window.location.search);
-  if (urlParams.get("hideconfig") === "true") {
-    document.getElementById("config-bar").style.display = "none";
-    startChat();
-  }
-
-  const savedTwitchChannel = localStorage.getItem("stream_twitch_channel");
-  if (savedTwitchChannel)
-    document.getElementById("twitch-channel").value = savedTwitchChannel;
-
-  const savedKickChannel = localStorage.getItem("stream_kick_channel");
-  if (savedKickChannel)
-    document.getElementById("kick-channel").value = savedKickChannel;
-
-  const savedYtHandle = localStorage.getItem("stream_yt_handle");
-  if (savedYtHandle)
-    document.getElementById("yt-handle").value = savedYtHandle;
-
-  const savedYtKey = localStorage.getItem("stream_yt_key");
-  if (savedYtKey)
-    document.getElementById("yt-api-key").value = savedYtKey;
-});
 
 /* Core function to construct, format, and append incoming chat messages to the chat feed */
 function appendMessage(
@@ -447,37 +378,123 @@ function updateTextColor() {
   document.documentElement.style.setProperty("--text-color", rgbaString);
 }
 
-/* Loads saved custom color preferences from localStorage on DOM content load */
-window.addEventListener("DOMContentLoaded", () => {
-  const savedUserHex = localStorage.getItem("savedUserBoxHex");
-  const savedUserOpacity = localStorage.getItem("savedUserBoxOpacity");
-  if (savedUserHex && savedUserOpacity) {
-    document.getElementById("userbox-color-picker").value = savedUserHex;
-    document.getElementById("userbox-opacity-slider").value = savedUserOpacity;
-    updateUserBoxColor();
-  }
+/* Saves current settings to the cloud backend */
+async function saveCurrentSettingsToCloud() {
+  try {
+    // 1. Collect all current values from your configuration inputs
+    const settingsData = {
+      twitchChannel: document.getElementById("twitch-channel")?.value || "",
+      kickChannel: document.getElementById("kick-channel")?.value || "",
+      ytHandle: document.getElementById("yt-handle")?.value || "",
+      ytApiKey: document.getElementById("yt-api-key")?.value || "",
+      userboxColor:
+        document.getElementById("userbox-color-picker")?.value || "",
+      userboxOpacity:
+        document.getElementById("userbox-opacity-slider")?.value || "",
+      msgboxColor: document.getElementById("msgbox-color-picker")?.value || "",
+      msgboxOpacity:
+        document.getElementById("msgbox-opacity-slider")?.value || "",
+      textColor: document.getElementById("textcolor-picker")?.value || "",
+      timestamp: new Date().toISOString(),
+    };
 
-  const savedMsgHex = localStorage.getItem("savedMsgBoxHex");
-  const savedMsgOpacity = localStorage.getItem("savedMsgBoxOpacity");
-  if (savedMsgHex && savedMsgOpacity) {
-    document.getElementById("msgbox-color-picker").value = savedMsgHex;
-    document.getElementById("msgbox-opacity-slider").value = savedMsgOpacity;
-    updateMsgBoxColor();
-  }
+    // Automatically grab all emote toggles using their class and ID
+    document.querySelectorAll(".emote-toggle").forEach((cb) => {
+      settingsData[cb.id] = cb.checked;
+    });
 
-  const savedTextHex = localStorage.getItem("savedTextHex");
-  if (savedTextHex) {
-    document.getElementById("textcolor-picker").value = savedTextHex;
-    updateTextColor();
-  }
-});
+    const response = await fetch("/api/settings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(settingsData),
+    });
 
-function clearAllCookies() {
-  localStorage.removeItem("savedBackgroundColor");
-  localStorage.removeItem("savedTheme");
-  localStorage.clear();
-  console.log("Saved colors and preferences have been cleared.");
-  location.reload();
+    if (!response.ok) {
+      throw new Error(`Failed to save settings: ${response.statusText}`);
+    }
+
+    const result = await response.json();
+    console.info("Settings successfully saved to cloud:", result);
+  } catch (err) {
+    console.error("Error saving settings to cloud:", err);
+  }
+}
+
+/* Fetch saved settings from Redis and apply them to the UI on page load */
+async function loadSettingsOnStartup() {
+  try {
+    const response = await fetch("/api/settings");
+    if (!response.ok) throw new Error("Failed to fetch settings from cloud");
+
+    const settings = await response.json();
+    if (!settings || Object.keys(settings).length === 0) return;
+
+    // 1. Populate text inputs if they exist in saved settings
+    if (settings.twitchChannel) {
+      const el = document.getElementById("twitch-channel");
+      if (el) el.value = settings.twitchChannel;
+    }
+    if (settings.kickChannel) {
+      const el = document.getElementById("kick-channel");
+      if (el) el.value = settings.kickChannel;
+    }
+    if (settings.ytHandle) {
+      const el = document.getElementById("yt-handle");
+      if (el) el.value = settings.ytHandle;
+    }
+    if (settings.ytApiKey) {
+      const el = document.getElementById("yt-api-key");
+      if (el) el.value = settings.ytApiKey;
+    }
+
+    // 2. Populate color pickers and sliders
+    // 2. Populate color pickers and sliders with proper CSS-matching fallbacks
+    if (settings.userboxColor) {
+      const el = document.getElementById("userbox-color-picker");
+      if (el) el.value = settings.userboxColor;
+    }
+    
+    // Explicitly handle opacity fallback to match your CSS (0.9)
+    const userboxOpacityVal = settings.userboxOpacity || "0.9";
+    const userboxSlider = document.getElementById("userbox-opacity-slider");
+    if (userboxSlider) {
+      userboxSlider.value = userboxOpacityVal;
+    }
+
+    if (settings.msgboxColor) {
+      const el = document.getElementById("msgbox-color-picker");
+      if (el) el.value = settings.msgboxColor;
+    }
+    
+    const msgboxOpacityVal = settings.msgboxOpacity || "0.6";
+    const msgboxSlider = document.getElementById("msgbox-opacity-slider");
+    if (msgboxSlider) {
+      msgboxSlider.value = msgboxOpacityVal;
+    }
+
+    if (settings.textColor) {
+      const el = document.getElementById("textcolor-picker");
+      if (el) el.value = settings.textColor;
+    }
+    
+
+    // 3. Populate emote wall checkboxes dynamically
+    Object.keys(settings).forEach((key) => {
+      const checkbox = document.getElementById(key);
+      if (checkbox && checkbox.type === "checkbox") {
+        checkbox.checked = settings[key];
+      }
+    });
+
+    // Trigger any color/styling update functions your app uses
+    if (typeof updateUserBoxColor === "function") updateUserBoxColor();
+    if (typeof updateMsgBoxColor === "function") updateMsgBoxColor();
+    if (typeof updateTextColor === "function") updateTextColor();
+
+    console.info("Loaded and applied cloud settings on startup:", settings);
+  } catch (err) {
+    console.error("Error loading settings on startup:", err);
+  }
 }
 
 /* Master startChat function combining individual platform initialization */
@@ -486,7 +503,6 @@ async function startChat() {
   const kickChan = document.getElementById("kick-channel").value.trim();
   const ytHandle = document.getElementById("yt-handle").value.trim();
   const ytKeyInput = document.getElementById("yt-api-key").value.trim();
-
   if (twitchChan) localStorage.setItem("stream_twitch_channel", twitchChan);
   if (kickChan) localStorage.setItem("stream_kick_channel", kickChan);
   if (ytHandle) localStorage.setItem("stream_yt_handle", ytHandle);
@@ -502,3 +518,81 @@ async function startChat() {
   if (kickChan) initKickChat(kickChan);
   if (ytHandle) initYouTubeChat(ytHandle);
 }
+
+/* DOM Content Loaded Event Handlers */
+window.addEventListener("DOMContentLoaded", () => {
+  initButterflies();
+  initEmoteToggles();
+  loadSettingsOnStartup();
+
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get("hideconfig") === "true") {
+    document.getElementById("config-bar").style.display = "none";
+    startChat();
+  }
+
+  // Clear Color Settings Handler
+  document
+    .getElementById("clearColorsBtn")
+    ?.addEventListener("click", async () => {
+      const choice = prompt(
+        "Where would you like to clear color settings?\nType: 'local', 'cloud', or 'both'",
+      ).toLowerCase();
+
+      if (choice === "local" || choice === "both") {
+        localStorage.removeItem("savedUserBoxHex");
+        localStorage.removeItem("savedUserBoxOpacity");
+        localStorage.removeItem("savedMsgBoxHex");
+        localStorage.removeItem("savedMsgBoxOpacity");
+        localStorage.removeItem("savedTextHex");
+        console.info("Local color settings cleared.");
+      }
+
+      if (choice === "cloud" || choice === "both") {
+        try {
+          const res = await fetch("/api/settings", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "clear_colors" }),
+          });
+          if (res.ok) console.info("Cloud color settings cleared.");
+        } catch (err) {
+          console.error("Failed to clear cloud colors:", err);
+        }
+      }
+
+      // Optional: reload page to reflect changes
+      window.location.reload();
+    });
+
+  // Clear Emote Settings Handler
+  document
+    .getElementById("clearEmotesBtn")
+    ?.addEventListener("click", async () => {
+      const choice = prompt(
+        "Where would you like to clear emote settings?\nType: 'local', 'cloud', or 'both'",
+      ).toLowerCase();
+
+      if (choice === "local" || choice === "both") {
+        Object.keys(emoteTriggers).forEach((keyword) => {
+          localStorage.removeItem(`emote_toggle_${keyword}`);
+        });
+        console.info("Local emote settings cleared.");
+      }
+
+      if (choice === "cloud" || choice === "both") {
+        try {
+          const res = await fetch("/api/settings", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "clear_emotes" }),
+          });
+          if (res.ok) console.info("Cloud emote settings cleared.");
+        } catch (err) {
+          console.error("Failed to clear cloud emotes:", err);
+        }
+      }
+
+      window.location.reload();
+    });
+});

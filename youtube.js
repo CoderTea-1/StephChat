@@ -201,15 +201,11 @@ const youtubeCustomEmotes = {
     "https://yt3.ggpht.com/gjC5x98J4BoVSEPfFJaoLtc4tSBGSEdIlfL2FV4iJG9uGNykDP9oJC_QxAuBTJy6dakPxVeC=s48-c",
 };
 
-/* Renders YouTube messages handling custom emoji structures and text runs */
+/* Renders YouTube messages handling custom emoji structures and text runs[cite: 3] */
 function renderYouTubeEmotes(fallbackText, messageRuns, container) {
   container.textContent = " ";
 
-  if (
-    messageRuns &&
-    Array.isArray(messageRuns) &&
-    messageRuns.length > 0
-  ) {
+  if (messageRuns && Array.isArray(messageRuns) && messageRuns.length > 0) {
     messageRuns.forEach((run) => {
       if (run.text) {
         parseColonEmotesIntoContainer(run.text, container);
@@ -219,9 +215,8 @@ function renderYouTubeEmotes(fallbackText, messageRuns, container) {
           emojiData.searchTerms || ["emoji"];
         const altText = shortcuts[0] || "emoji";
         const highestResThumbnail =
-          emojiData.image?.thumbnails?.[
-            emojiData.image.thumbnails.length - 1
-          ]?.url;
+          emojiData.image?.thumbnails?.[emojiData.image.thumbnails.length - 1]
+            ?.url;
 
         if (highestResThumbnail) {
           const img = document.createElement("img");
@@ -245,7 +240,7 @@ function renderYouTubeEmotes(fallbackText, messageRuns, container) {
   }
 }
 
-/* Parses text for colon-enclosed emoji strings and converts them to image tags */
+/* Parses text for colon-enclosed emoji strings and converts them to image tags[cite: 3] */
 function parseColonEmotesIntoContainer(text, container) {
   const colonRegex = /(:[a-zA-Z0-9_-]+:)/g;
   let lastIdx = 0;
@@ -280,13 +275,11 @@ function parseColonEmotesIntoContainer(text, container) {
   }
 
   if (lastIdx < text.length) {
-    container.appendChild(
-      document.createTextNode(text.substring(lastIdx)),
-    );
+    container.appendChild(document.createTextNode(text.substring(lastIdx)));
   }
 }
 
-/* YouTube Chat Initialization */
+/* YouTube Chat Initialization with Cross-Device API Request Counter */
 async function initYouTubeChat(ytHandle) {
   let nextPageToken = "";
   let activeLiveChatId = null;
@@ -311,6 +304,7 @@ async function initYouTubeChat(ytHandle) {
   ];
 
   let currentKeyIndex = 0;
+  let localRequestCount = 0;
 
   console.info(
     `YouTube Key Pool Initialized: Found ${keyPool.length} key(s). Keys array:`,
@@ -329,18 +323,42 @@ async function initYouTubeChat(ytHandle) {
   function rotateKey() {
     if (keyPool.length === 0) return;
     currentKeyIndex = (currentKeyIndex + 1) % keyPool.length;
-    console.info(
-      `YouTube: Rotated to next key index -> ${currentKeyIndex}`,
-    );
+    console.info(`YouTube: Rotated to next key index -> ${currentKeyIndex}`);
   }
 
   function maskKey(key) {
     if (!key) return "";
     try {
-      if (key.length > 10)
-        return key.slice(0, 4) + "..." + key.slice(-4);
+      if (key.length > 10) return key.slice(0, 4) + "..." + key.slice(-4);
     } catch (e) {}
     return key;
+  }
+
+  // Tracks and prints total daily requests used across all devices to the console
+  async function trackApiRequest() {
+    localRequestCount++;
+    try {
+      const response = await fetch("/api/increment-counter", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ count: 1, timestamp: new Date().toISOString() }),
+      });
+      const data = await response.json();
+
+      if (data && typeof data.totalToday === "number") {
+        console.log(
+          `[YouTube API Counter] Total requests used today across all devices: ${data.totalToday}`,
+        );
+      } else {
+        console.log(
+          `[YouTube API Counter] Requests today (Local fallback count): ${localRequestCount}`,
+        );
+      }
+    } catch (err) {
+      console.log(
+        `[YouTube API Counter] Requests today (Local fallback count): ${localRequestCount} (Backend sync skipped/failed)`,
+      );
+    }
   }
 
   async function fetchYouTubeChat() {
@@ -374,6 +392,7 @@ async function initYouTubeChat(ytHandle) {
         let searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(formattedHandle)}&type=video&eventType=live&key=${ytKey}`;
 
         let searchRes = await fetch(searchUrl);
+        await trackApiRequest(); // Count Search API call
 
         if (searchRes.status === 403 || searchRes.status === 429) {
           triggerErrorFlash();
@@ -392,6 +411,7 @@ async function initYouTubeChat(ytHandle) {
           let videoId = searchData.items[0].id.videoId;
           let detailsUrl = `https://www.googleapis.com/youtube/v3/videos?part=liveStreamingDetails&id=${videoId}&key=${ytKey}`;
           let detailsRes = await fetch(detailsUrl);
+          await trackApiRequest(); // Count Video Details API call
 
           if (detailsRes.status === 403 || detailsRes.status === 429) {
             triggerErrorFlash();
@@ -406,12 +426,15 @@ async function initYouTubeChat(ytHandle) {
 
           let detailsData = await detailsRes.json();
           activeLiveChatId =
-            detailsData.items?.[0]?.liveStreamingDetails
-              ?.activeLiveChatId;
+            detailsData.items?.[0]?.liveStreamingDetails?.activeLiveChatId;
         }
 
         if (!activeLiveChatId) {
-          const t = setTimeout(fetchYouTubeChat, 10000);
+          console.info(
+            `Streamer ${ytHandle} is currently offline. Checking again in 5 minutes...`,
+          );
+          const OFFLINE_CHECK_INTERVAL = 300000;
+          const t = setTimeout(fetchYouTubeChat, OFFLINE_CHECK_INTERVAL);
           ytTimeouts.push(t);
           return;
         }
@@ -421,6 +444,7 @@ async function initYouTubeChat(ytHandle) {
       if (nextPageToken) msgUrl += `&pageToken=${nextPageToken}`;
 
       let msgRes = await fetch(msgUrl);
+      await trackApiRequest(); // Count Live Chat Messages API call
 
       if (msgRes.status === 403 || msgRes.status === 429) {
         triggerErrorFlash();
@@ -448,23 +472,18 @@ async function initYouTubeChat(ytHandle) {
         msgData.items.forEach((item) => {
           const author = item.authorDetails.displayName;
           const text = item.snippet.displayMessage;
-          const messageRuns =
-            item.snippet.textMessageDetails?.messageRuns;
-          appendMessage(
-            "YouTube",
-            author,
-            text,
-            "#ff8080",
-            null,
-            messageRuns,
-          );
+          const messageRuns = item.snippet.textMessageDetails?.messageRuns;
+          appendMessage("YouTube", author, text, "#ff8080", null, messageRuns);
         });
       }
 
       globalBackoff = 2000;
       isInitialFetch = false;
 
-      const nextInterval = msgData.pollingIntervalMillis || 3000;
+      const suggestedInterval = msgData.pollingIntervalMillis || 3000;
+      const MIN_SAFE_INTERVAL = 15000;
+      const nextInterval = Math.max(suggestedInterval, MIN_SAFE_INTERVAL);
+
       const t = setTimeout(fetchYouTubeChat, nextInterval);
       ytTimeouts.push(t);
     } catch (err) {
