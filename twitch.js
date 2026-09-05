@@ -304,13 +304,178 @@ function renderTwitchBadges(badgesString, badgeInfoString, container) {
   }
 }
 
-/* Replaces text substrings with animated Twitch emote images based on metadata tags */
-function renderTwitchEmotes(text, emotesString, container) {
+// ==========================================
+// GIPHY API INTEGRATION FOR ALT-TEXT GIFS
+// ==========================================
+
+const GIPHY_API_KEY = "p7hmweKgq4lvHw2cxBUGSRc0vmJUWt0d";
+
+/**
+ * 2. Extracts core search terms from bracketed alt-text strings 
+ * (e.g., "[Everybody Loves Raymond Hello GIF by TV Land]" -> "Everybody Loves Raymond Hello")
+ */
+/**
+ * Extracts core terms from bracketed alt-text strings
+ */
+function extractGiphySearchTerm(text) {
+  if (!text || typeof text !== "string") return null;
+  const match = text.match(/^\[(.*?)\]$/);
+  if (!match) return null;
+
+  let content = match[1];
+
+  // Check if it follows the "Title GIF by Author" pattern
+  const byIndex = content.search(/\s+gif\s+by\s+/i);
+  if (byIndex !== -1) {
+    // Everything before " GIF by " is the exact title of the GIF
+    content = content.substring(0, byIndex);
+  }
+
+  // Fallback cleanup if "by" wasn't matched but trailing " GIF" exists
+  content = content.replace(/\s+gif$/i, "").trim();
+
+  return content;
+}
+
+/**
+ * Uses the Giphy Translate endpoint for accurate phrase-to-GIF matching
+ */
+async function fetchAndRenderGiphyGif(altTextString, container) {
+  const searchTerm = extractGiphySearchTerm(altTextString);
+  
+  if (!searchTerm || !GIPHY_API_KEY || GIPHY_API_KEY === "YOUR_GIPHY_API_KEY") {
+    container.appendChild(document.createTextNode(` ${altTextString}`));
+    return;
+  }
+
+  const img = document.createElement("img");
+  img.alt = altTextString;
+  img.title = altTextString;
+  img.className = "chat-gif-embed";
+  img.style.maxWidth = "200px";
+  img.style.maxHeight = "150px";
+  img.style.display = "block";
+  img.style.borderRadius = "6px";
+  img.style.marginTop = "4px";
+  
+  container.appendChild(img);
+
   try {
+    // Fetch top 10 results to evaluate best title match
+    const requestUrl = `https://api.giphy.com/v1/gifs/search?api_key=${encodeURIComponent(GIPHY_API_KEY)}&q=${encodeURIComponent(searchTerm)}&limit=10&rating=pg-13`;
+    
+    const response = await fetch(requestUrl);
+    if (!response.ok) throw new Error(`Giphy API responded with status: ${response.status}`);
+
+    const data = await response.json();
+    
+    if (data.data && data.data.length > 0) {
+      const lowerSearchTerm = searchTerm.toLowerCase();
+      
+      // Try to find a GIF object whose title closely matches our exact search term
+      let matchedGif = data.data.find(item => 
+        item.title && item.title.toLowerCase().includes(lowerSearchTerm)
+      );
+
+      // If no close title match is found in the batch, fallback to the first result
+      if (!matchedGif) {
+        matchedGif = data.data[0];
+      }
+
+      const gifUrl = matchedGif.images.fixed_height.url;
+      img.src = gifUrl;
+    } else {
+      img.remove();
+      container.appendChild(document.createTextNode(` ${altTextString}`));
+    }
+  } catch (err) {
+    console.error("Giphy API error:", err);
+    img.remove();
+    container.appendChild(document.createTextNode(` ${altTextString}`));
+  }
+}
+
+async function fetchAndRenderGiphyGif(altTextString, container) {
+  const searchTerm = extractGiphySearchTerm(altTextString);
+  
+  if (!searchTerm || !GIPHY_API_KEY || GIPHY_API_KEY === "YOUR_GIPHY_API_KEY") {
+    container.appendChild(document.createTextNode(` ${altTextString}`));
+    return;
+  }
+
+  const img = document.createElement("img");
+  img.alt = altTextString;
+  img.title = altTextString;
+  img.className = "chat-gif-embed";
+  img.style.maxWidth = "200px";
+  img.style.maxHeight = "150px";
+  img.style.display = "block";
+  img.style.borderRadius = "6px";
+  img.style.marginTop = "4px";
+  
+  container.appendChild(img);
+
+  try {
+    // Fetch top 10 results to evaluate best title match
+    const requestUrl = `https://api.giphy.com/v1/gifs/search?api_key=${encodeURIComponent(GIPHY_API_KEY)}&q=${encodeURIComponent(searchTerm)}&limit=10&rating=pg-13`;
+    
+    const response = await fetch(requestUrl);
+    if (!response.ok) throw new Error(`Giphy API responded with status: ${response.status}`);
+
+    const data = await response.json();
+    
+    if (data.data && data.data.length > 0) {
+      const lowerSearchTerm = searchTerm.toLowerCase();
+      
+      // Try to find a GIF object whose title closely matches our exact search term
+      let matchedGif = data.data.find(item => 
+        item.title && item.title.toLowerCase().includes(lowerSearchTerm)
+      );
+
+      // If no close title match is found in the batch, fallback to the first result
+      if (!matchedGif) {
+        matchedGif = data.data[0];
+      }
+
+      const gifUrl = matchedGif.images.fixed_height.url;
+      img.src = gifUrl;
+    } else {
+      img.remove();
+      container.appendChild(document.createTextNode(` ${altTextString}`));
+    }
+  } catch (err) {
+    console.error("Giphy API error:", err);
+    img.remove();
+    container.appendChild(document.createTextNode(` ${altTextString}`));
+  }
+}
+
+/**
+ * 1. Modified renderTwitchEmotes to check if message text contains bracketed GIF descriptions
+ */
+async function renderTwitchEmotes(text, emotesString, container) {
+  console.log("[GiphyDebug] renderTwitchEmotes triggered.");
+  console.log("[GiphyDebug] Raw message text passed:", text);
+  console.log("[GiphyDebug] Raw emotesString passed:", emotesString);
+
+  try {
+    const trimmedText = text ? text.trim() : "";
+    console.log("[GiphyDebug] Trimmed message text:", trimmedText);
+
+    // Check if the cleaned message is entirely a bracketed GIF alt-text string
+    if (trimmedText.startsWith("[") && trimmedText.endsWith("]")) {
+      console.log("[GiphyDebug] Condition met: Message matches bracketed alt-text format. Bypassing emote map logic to trigger Giphy lookup.");
+      container.textContent = " ";
+      await fetchAndRenderGiphyGif(trimmedText, container);
+      return;
+    } else {
+      console.log("[GiphyDebug] Condition failed: Message does NOT start with '[' and end with ']'. Proceeding with normal emote/text rendering.");
+    }
+
     const emoteMap = [];
     const cleanEmotesStr = emotesString
-      .replace(/\\:/g, ":")
-      .replace(/\\=/g, "=");
+      ? emotesString.replace(/\\:/g, ":").replace(/\\=/g, "=")
+      : "";
 
     cleanEmotesStr.split("/").forEach((emoteGroup) => {
       if (!emoteGroup) return;
@@ -366,7 +531,7 @@ function renderTwitchEmotes(text, emotesString, container) {
       );
     }
   } catch (e) {
-    console.error("Twitch Emote Error:", e);
+    console.error("[GiphyDebug] Twitch Emote / Alt-Text Rendering Error:", e);
     container.textContent = ` ${text}`;
   }
 }

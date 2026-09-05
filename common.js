@@ -260,8 +260,8 @@ function appendMessage(
   const contentDiv = document.createElement("div");
   contentDiv.className = "message-content";
 
-  if (platform === "Twitch" && emotesData) {
-    renderTwitchEmotes(safeText, emotesData, contentDiv);
+  if (platform === "Twitch") {
+    renderTwitchEmotes(safeText, emotesData || "", contentDiv);
   } else if (platform === "Kick") {
     renderKickEmotes(safeText, contentDiv);
   } else if (platform === "YouTube") {
@@ -453,7 +453,7 @@ async function loadSettingsOnStartup() {
       const el = document.getElementById("userbox-color-picker");
       if (el) el.value = settings.userboxColor;
     }
-    
+
     // Explicitly handle opacity fallback to match your CSS (0.9)
     const userboxOpacityVal = settings.userboxOpacity || "0.9";
     const userboxSlider = document.getElementById("userbox-opacity-slider");
@@ -465,7 +465,7 @@ async function loadSettingsOnStartup() {
       const el = document.getElementById("msgbox-color-picker");
       if (el) el.value = settings.msgboxColor;
     }
-    
+
     const msgboxOpacityVal = settings.msgboxOpacity || "0.6";
     const msgboxSlider = document.getElementById("msgbox-opacity-slider");
     if (msgboxSlider) {
@@ -476,7 +476,6 @@ async function loadSettingsOnStartup() {
       const el = document.getElementById("textcolor-picker");
       if (el) el.value = settings.textColor;
     }
-    
 
     // 3. Populate emote wall checkboxes dynamically
     Object.keys(settings).forEach((key) => {
