@@ -454,13 +454,13 @@ async function fetchAndRenderGiphyGif(altTextString, container) {
  * 1. Modified renderTwitchEmotes to check if message text contains bracketed GIF descriptions
  */
 async function renderTwitchEmotes(text, emotesString, container) {
-  console.log("[GiphyDebug] renderTwitchEmotes triggered.");
-  console.log("[GiphyDebug] Raw message text passed:", text);
-  console.log("[GiphyDebug] Raw emotesString passed:", emotesString);
+  // console.log("[GiphyDebug] renderTwitchEmotes triggered.");
+  // console.log("[GiphyDebug] Raw message text passed:", text);
+  // console.log("[GiphyDebug] Raw emotesString passed:", emotesString);
 
   try {
     const trimmedText = text ? text.trim() : "";
-    console.log("[GiphyDebug] Trimmed message text:", trimmedText);
+    //console.log("[GiphyDebug] Trimmed message text:", trimmedText);
 
     // Check if the cleaned message is entirely a bracketed GIF alt-text string
     if (trimmedText.startsWith("[") && trimmedText.endsWith("]")) {
@@ -469,7 +469,7 @@ async function renderTwitchEmotes(text, emotesString, container) {
       await fetchAndRenderGiphyGif(trimmedText, container);
       return;
     } else {
-      console.log("[GiphyDebug] Condition failed: Message does NOT start with '[' and end with ']'. Proceeding with normal emote/text rendering.");
+      console.log("");
     }
 
     const emoteMap = [];

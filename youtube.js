@@ -201,7 +201,7 @@ const youtubeCustomEmotes = {
     "https://yt3.ggpht.com/gjC5x98J4BoVSEPfFJaoLtc4tSBGSEdIlfL2FV4iJG9uGNykDP9oJC_QxAuBTJy6dakPxVeC=s48-c",
 };
 
-/* Renders YouTube messages handling custom emoji structures and text runs[cite: 3] */
+/* Renders YouTube messages handling custom emoji structures and text runs */
 function renderYouTubeEmotes(fallbackText, messageRuns, container) {
   container.textContent = " ";
 
@@ -211,12 +211,10 @@ function renderYouTubeEmotes(fallbackText, messageRuns, container) {
         parseColonEmotesIntoContainer(run.text, container);
       } else if (run.emoji) {
         const emojiData = run.emoji;
-        const shortcuts = emojiData.shortcuts ||
-          emojiData.searchTerms || ["emoji"];
+        const shortcuts = emojiData.shortcuts || emojiData.searchTerms || ["emoji"];
         const altText = shortcuts[0] || "emoji";
         const highestResThumbnail =
-          emojiData.image?.thumbnails?.[emojiData.image.thumbnails.length - 1]
-            ?.url;
+          emojiData.image?.thumbnails?.[emojiData.image.thumbnails.length - 1]?.url;
 
         if (highestResThumbnail) {
           const img = document.createElement("img");
@@ -240,7 +238,7 @@ function renderYouTubeEmotes(fallbackText, messageRuns, container) {
   }
 }
 
-/* Parses text for colon-enclosed emoji strings and converts them to image tags[cite: 3] */
+/* Parses text for colon-enclosed emoji strings and converts them to image tags */
 function parseColonEmotesIntoContainer(text, container) {
   const colonRegex = /(:[a-zA-Z0-9_-]+:)/g;
   let lastIdx = 0;
@@ -279,8 +277,10 @@ function parseColonEmotesIntoContainer(text, container) {
   }
 }
 
-/* YouTube Chat Initialization with Cross-Device API Request Counter */
-async function initYouTubeChat(ytHandle) {
+const seenYtMessageIds = new Set();
+
+/* YouTube Chat Initialization using Channel ID with Key Rotation, Exhaustion Check, and Midnight Wait */
+async function initYouTubeChat(channelId) {
   let nextPageToken = "";
   let activeLiveChatId = null;
   let isInitialFetch = true;
@@ -305,6 +305,7 @@ async function initYouTubeChat(ytHandle) {
 
   let currentKeyIndex = 0;
   let localRequestCount = 0;
+  let consecutiveKeyFailures = 0;
 
   console.info(
     `YouTube Key Pool Initialized: Found ${keyPool.length} key(s). Keys array:`,
@@ -323,7 +324,8 @@ async function initYouTubeChat(ytHandle) {
   function rotateKey() {
     if (keyPool.length === 0) return;
     currentKeyIndex = (currentKeyIndex + 1) % keyPool.length;
-    console.info(`YouTube: Rotated to next key index -> ${currentKeyIndex}`);
+    consecutiveKeyFailures++;
+    console.info(`[YouTube Debug] Rotated to next key index -> ${currentKeyIndex} (Masked: ${maskKey(getCurrentKey())})`);
   }
 
   function maskKey(key) {
@@ -334,9 +336,16 @@ async function initYouTubeChat(ytHandle) {
     return key;
   }
 
-  // Tracks and prints total daily requests used across all devices to the console
-  async function trackApiRequest() {
+  function getTimeUntilMidnight() {
+    const now = new Date();
+    const midnight = new Date(now);
+    midnight.setHours(24, 0, 0, 0);
+    return midnight.getTime() - now.getTime();
+  }
+
+  async function trackApiRequest(endpointName) {
     localRequestCount++;
+    console.info(`[YouTube Debug] API Pull executed (${endpointName}). Local request count: ${localRequestCount}`);
     try {
       const response = await fetch("/api/increment-counter", {
         method: "POST",
@@ -362,10 +371,22 @@ async function initYouTubeChat(ytHandle) {
   }
 
   async function fetchYouTubeChat() {
+    if (consecutiveKeyFailures >= keyPool.length) {
+      const msToMidnight = getTimeUntilMidnight();
+      const hoursLeft = (msToMidnight / (1000 * 60 * 60)).toFixed(2);
+      console.error(
+        `[YouTube Debug] All ${keyPool.length} API keys have failed. Stopping rotation and waiting until midnight (~${hoursLeft} hours) to resume.`
+      );
+      triggerErrorFlash();
+      const t = setTimeout(fetchYouTubeChat, msToMidnight);
+      ytTimeouts.push(t);
+      return;
+    }
+
     const ytKey = getCurrentKey();
     if (!ytKey) {
       console.error(
-        "YouTube Fetch Error: No API keys provided in the input pool.",
+        "[YouTube Debug] Fetch Error: No API keys provided in the input pool.",
       );
       triggerErrorFlash();
       const delay = Math.min(globalBackoff, GLOBAL_MAX_BACKOFF);
@@ -380,24 +401,22 @@ async function initYouTubeChat(ytHandle) {
 
     try {
       console.info(
-        `YouTube: trying key index ${currentKeyIndex} (${maskKey(ytKey)})`,
+        `[YouTube Debug] Trying key index ${currentKeyIndex} (${maskKey(ytKey)})`,
       );
     } catch (e) {}
 
     try {
       if (!activeLiveChatId) {
-        let formattedHandle = ytHandle.startsWith("@")
-          ? ytHandle
-          : "@" + ytHandle;
-        let searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(formattedHandle)}&type=video&eventType=live&key=${ytKey}`;
+        // Direct Channel ID search query for live broadcasts
+        let searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${encodeURIComponent(channelId)}&eventType=live&type=video&key=${ytKey}`;
 
         let searchRes = await fetch(searchUrl);
-        await trackApiRequest(); // Count Search API call
+        await trackApiRequest("Search API (Channel ID)");
 
         if (searchRes.status === 403 || searchRes.status === 429) {
           triggerErrorFlash();
           console.warn(
-            `YouTube key index ${currentKeyIndex} failed with status ${searchRes.status}. Rotating to next key.`,
+            `[YouTube Debug] Key index ${currentKeyIndex} failed search with status ${searchRes.status}. Rotating key.`,
           );
           rotateKey();
           const t = setTimeout(fetchYouTubeChat, 500);
@@ -411,12 +430,12 @@ async function initYouTubeChat(ytHandle) {
           let videoId = searchData.items[0].id.videoId;
           let detailsUrl = `https://www.googleapis.com/youtube/v3/videos?part=liveStreamingDetails&id=${videoId}&key=${ytKey}`;
           let detailsRes = await fetch(detailsUrl);
-          await trackApiRequest(); // Count Video Details API call
+          await trackApiRequest("Video Details API");
 
           if (detailsRes.status === 403 || detailsRes.status === 429) {
             triggerErrorFlash();
             console.warn(
-              `YouTube key index ${currentKeyIndex} failed during video details with status ${detailsRes.status}. Rotating to next key.`,
+              `[YouTube Debug] Key index ${currentKeyIndex} failed video details with status ${detailsRes.status}. Rotating key.`,
             );
             rotateKey();
             const t = setTimeout(fetchYouTubeChat, 500);
@@ -431,7 +450,7 @@ async function initYouTubeChat(ytHandle) {
 
         if (!activeLiveChatId) {
           console.info(
-            `Streamer ${ytHandle} is currently offline. Checking again in 5 minutes...`,
+            `Channel ID ${channelId} has no active live stream right now. Checking again in 5 minutes...`,
           );
           const OFFLINE_CHECK_INTERVAL = 300000;
           const t = setTimeout(fetchYouTubeChat, OFFLINE_CHECK_INTERVAL);
@@ -444,12 +463,12 @@ async function initYouTubeChat(ytHandle) {
       if (nextPageToken) msgUrl += `&pageToken=${nextPageToken}`;
 
       let msgRes = await fetch(msgUrl);
-      await trackApiRequest(); // Count Live Chat Messages API call
+      await trackApiRequest("Live Chat Messages API");
 
       if (msgRes.status === 403 || msgRes.status === 429) {
         triggerErrorFlash();
         console.warn(
-          `YouTube key index ${currentKeyIndex} hit quota/rate limit (${msgRes.status}). Rotating to next key.`,
+          `[YouTube Debug] Key index ${currentKeyIndex} hit quota/rate limit on messages (${msgRes.status}). Rotating key.`,
         );
         rotateKey();
         const t = setTimeout(fetchYouTubeChat, 500);
@@ -465,11 +484,16 @@ async function initYouTubeChat(ytHandle) {
         return;
       }
 
+      consecutiveKeyFailures = 0;
+
       let msgData = await msgRes.json();
       nextPageToken = msgData.nextPageToken;
 
       if (!isInitialFetch && msgData.items) {
         msgData.items.forEach((item) => {
+          if (seenYtMessageIds.has(item.id)) return;
+          seenYtMessageIds.add(item.id);
+
           const author = item.authorDetails.displayName;
           const text = item.snippet.displayMessage;
           const messageRuns = item.snippet.textMessageDetails?.messageRuns;
@@ -484,10 +508,11 @@ async function initYouTubeChat(ytHandle) {
       const MIN_SAFE_INTERVAL = 15000;
       const nextInterval = Math.max(suggestedInterval, MIN_SAFE_INTERVAL);
 
+      console.info(`[YouTube Debug] Scheduling next poll in ${nextInterval}ms using pollingIntervalMillis + safeguards.`);
       const t = setTimeout(fetchYouTubeChat, nextInterval);
       ytTimeouts.push(t);
     } catch (err) {
-      console.error("YouTube Fetch Error:", err);
+      console.error("[YouTube Debug] Fetch Error:", err);
       triggerErrorFlash();
       rotateKey();
       const delay = Math.min(globalBackoff, GLOBAL_MAX_BACKOFF);
