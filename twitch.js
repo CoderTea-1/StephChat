@@ -22,34 +22,56 @@ const TWITCH_CUSTOM_SUB_BADGES = {
 };
 
 const TWITCH_SPECIAL_BADGES = {
-  "10_gift_subs": "https://static-cdn.jtvnw.net/badges/v1/d333288c-65d7-4c7b-b691-cdd7b3484bf8/3",
-  "100_gift_subs": "https://static-cdn.jtvnw.net/badges/v1/8343ada7-3451-434e-91c4-e82bdcf54460/2",
-  "2000_gift_subs": "https://static-cdn.jtvnw.net/badges/v1/4e8b3a32-1513-44ad-8a12-6c90232c77f9/2",
-  "25_gift_subs": "https://static-cdn.jtvnw.net/badges/v1/052a5d41-f1cc-455c-bc7b-fe841ffaf17f/2",
-  bits_leader_1: "https://static-cdn.jtvnw.net/badges/v1/8bedf8c3-7a6d-4df2-b62f-791b96a5dd31/2",
-  bits_leader_2: "https://static-cdn.jtvnw.net/badges/v1/f04baac7-9141-4456-a0e7-6301bcc34138/2",
-  bits_leader_3: "https://static-cdn.jtvnw.net/badges/v1/f1d2aab6-b647-47af-965b-84909cf303aa/2",
-  clip_leader_2: "https://static-cdn.jtvnw.net/badges/v1/9eddf7ab-aa46-4798-abe2-710db1043254/2",
-  former_hype_train_conductor: "https://static-cdn.jtvnw.net/badges/v1/9c8d038a-3a29-45ea-96d4-5031fb1a7a81/2",
-  former_train_conductor: "https://static-cdn.jtvnw.net/badges/v1/9c8d038a-3a29-45ea-96d4-5031fb1a7a81/3",
-  current_hype_train_conductor: "https://static-cdn.jtvnw.net/badges/v1/fae4086c-3190-44d4-83c8-8ef0cbe1a515/3",
-  founders_badge: "https://static-cdn.jtvnw.net/badges/v1/511b78a9-ab37-472f-9569-457753bbe7d3/2",
-  gifter_leader_1: "https://static-cdn.jtvnw.net/badges/v1/21656088-7da2-4467-acd2-55220e1f45ad/2",
-  gifter_leader_2: "https://static-cdn.jtvnw.net/badges/v1/0d9fe96b-97b7-4215-b5f3-5328ebad271c/2",
-  gifter_leader_3: "https://static-cdn.jtvnw.net/badges/v1/4c6e4497-eed9-4dd3-ac64-e0599d0a63e5/2",
-  lead_mod: "https://static-cdn.jtvnw.net/badges/v1/0822047b-65e0-46f2-94a9-d1091d685d33/3",
-  verified: "https://static-cdn.jtvnw.net/badges/v1/d12a2e27-16f6-41d0-ab77-b780518f00a3/3",
+  "10_gift_subs":
+    "https://static-cdn.jtvnw.net/badges/v1/d333288c-65d7-4c7b-b691-cdd7b3484bf8/3",
+  "100_gift_subs":
+    "https://static-cdn.jtvnw.net/badges/v1/8343ada7-3451-434e-91c4-e82bdcf54460/2",
+  "2000_gift_subs":
+    "https://static-cdn.jtvnw.net/badges/v1/4e8b3a32-1513-44ad-8a12-6c90232c77f9/2",
+  "25_gift_subs":
+    "https://static-cdn.jtvnw.net/badges/v1/052a5d41-f1cc-455c-bc7b-fe841ffaf17f/2",
+  bits_leader_1:
+    "https://static-cdn.jtvnw.net/badges/v1/8bedf8c3-7a6d-4df2-b62f-791b96a5dd31/2",
+  bits_leader_2:
+    "https://static-cdn.jtvnw.net/badges/v1/f04baac7-9141-4456-a0e7-6301bcc34138/2",
+  bits_leader_3:
+    "https://static-cdn.jtvnw.net/badges/v1/f1d2aab6-b647-47af-965b-84909cf303aa/2",
+  clip_leader_2:
+    "https://static-cdn.jtvnw.net/badges/v1/9eddf7ab-aa46-4798-abe2-710db1043254/2",
+  former_hype_train_conductor:
+    "https://static-cdn.jtvnw.net/badges/v1/9c8d038a-3a29-45ea-96d4-5031fb1a7a81/2",
+  former_train_conductor:
+    "https://static-cdn.jtvnw.net/badges/v1/9c8d038a-3a29-45ea-96d4-5031fb1a7a81/3",
+  current_hype_train_conductor:
+    "https://static-cdn.jtvnw.net/badges/v1/fae4086c-3190-44d4-83c8-8ef0cbe1a515/3",
+  founders_badge:
+    "https://static-cdn.jtvnw.net/badges/v1/511b78a9-ab37-472f-9569-457753bbe7d3/2",
+  gifter_leader_1:
+    "https://static-cdn.jtvnw.net/badges/v1/21656088-7da2-4467-acd2-55220e1f45ad/2",
+  gifter_leader_2:
+    "https://static-cdn.jtvnw.net/badges/v1/0d9fe96b-97b7-4215-b5f3-5328ebad271c/2",
+  gifter_leader_3:
+    "https://static-cdn.jtvnw.net/badges/v1/4c6e4497-eed9-4dd3-ac64-e0599d0a63e5/2",
+  lead_mod:
+    "https://static-cdn.jtvnw.net/badges/v1/0822047b-65e0-46f2-94a9-d1091d685d33/3",
+  verified:
+    "https://static-cdn.jtvnw.net/badges/v1/d12a2e27-16f6-41d0-ab77-b780518f00a3/3",
 };
 
 const TWITCH_MILESTONE_CHEER_BADGES = {
   100: "https://static-cdn.jtvnw.net/badges/v1/9da789c1-5cbc-428c-85ad-995f881aad1f/2",
   1000: "https://static-cdn.jtvnw.net/badges/v1/9a6683a1-6965-4490-af4d-af8670952fa5/3",
   5000: "https://static-cdn.jtvnw.net/badges/v1/7debff95-bf6f-4b4a-88f3-7b643915ce7e/2",
-  10000: "https://static-cdn.jtvnw.net/badges/v1/5ae8d57a-44c9-4918-a785-c099b6000712/2",
-  25000: "https://static-cdn.jtvnw.net/badges/v1/783dd71d-c40f-43e2-92bb-47c79cb601fd/2",
-  50000: "https://static-cdn.jtvnw.net/badges/v1/10608d86-9573-4d8f-8ea7-a9995c4b062a/2",
-  75000: "https://static-cdn.jtvnw.net/badges/v1/d8839812-358d-4160-9436-48f2fdd6f031/2",
-  100000: "https://static-cdn.jtvnw.net/badges/v1/3ebbb569-3503-4ca1-a8de-646d6b5b743a/2",
+  10000:
+    "https://static-cdn.jtvnw.net/badges/v1/5ae8d57a-44c9-4918-a785-c099b6000712/2",
+  25000:
+    "https://static-cdn.jtvnw.net/badges/v1/783dd71d-c40f-43e2-92bb-47c79cb601fd/2",
+  50000:
+    "https://static-cdn.jtvnw.net/badges/v1/10608d86-9573-4d8f-8ea7-a9995c4b062a/2",
+  75000:
+    "https://static-cdn.jtvnw.net/badges/v1/d8839812-358d-4160-9436-48f2fdd6f031/2",
+  100000:
+    "https://static-cdn.jtvnw.net/badges/v1/3ebbb569-3503-4ca1-a8de-646d6b5b743a/2",
 };
 
 const TWITCH_CUSTOM_CHEER_BADGES = {
@@ -126,8 +148,7 @@ function renderTwitchBadges(badgesString, badgeInfoString, container) {
         fallbackStyle += "background:#9146FF;";
 
         const tierObj =
-          TWITCH_CUSTOM_SUB_BADGES[tierKey] ||
-          TWITCH_CUSTOM_SUB_BADGES["1000"];
+          TWITCH_CUSTOM_SUB_BADGES[tierKey] || TWITCH_CUSTOM_SUB_BADGES["1000"];
         if (tierObj && typeof tierObj === "object") {
           const availableMonths = Object.keys(tierObj)
             .map(Number)
@@ -178,10 +199,7 @@ function renderTwitchBadges(badgesString, badgeInfoString, container) {
         fallbackStyle += "background:#ff4500;";
 
         let giftKeyLookup = `${gifts}_gift_subs`;
-        if (
-          TWITCH_SPECIAL_BADGES &&
-          TWITCH_SPECIAL_BADGES[giftKeyLookup]
-        ) {
+        if (TWITCH_SPECIAL_BADGES && TWITCH_SPECIAL_BADGES[giftKeyLookup]) {
           imgSrc = TWITCH_SPECIAL_BADGES[giftKeyLookup];
         } else {
           const availableGifts = Object.keys(TWITCH_CUSTOM_GIFTER_BADGES)
@@ -194,10 +212,7 @@ function renderTwitchBadges(badgesString, badgeInfoString, container) {
             TWITCH_CUSTOM_GIFTER_BADGES[matchedGiftKey] ||
             TWITCH_CUSTOM_GIFTER_BADGES["1"];
         }
-      } else if (
-        badgeName === "bits-leader" ||
-        badgeName === "bits_leader"
-      ) {
+      } else if (badgeName === "bits-leader" || badgeName === "bits_leader") {
         altText = `Bits Leader #${badgeVersion}`;
         fallbackText = `BITS LEADER`;
         fallbackStyle += "background:#10b981;";
@@ -218,10 +233,7 @@ function renderTwitchBadges(badgesString, badgeInfoString, container) {
           TWITCH_SPECIAL_BADGES[`gifter_leader_${badgeVersion}`] ||
           TWITCH_SPECIAL_BADGES["gifter_leader_2"] ||
           `https://static-cdn.jtvnw.net/badges/v1/e34f99f4-6240-41f2-b349-2e1d5c2abf6c/3`;
-      } else if (
-        badgeName === "clips-leader" ||
-        badgeName === "clips_leader"
-      ) {
+      } else if (badgeName === "clips-leader" || badgeName === "clips_leader") {
         altText = `Clips Leader #${badgeVersion}`;
         fallbackText = `CLIPS LEADER`;
         fallbackStyle += "background:#06b6d4;";
@@ -311,38 +323,68 @@ function renderTwitchBadges(badgesString, badgeInfoString, container) {
 const GIPHY_API_KEY = "p7hmweKgq4lvHw2cxBUGSRc0vmJUWt0d";
 
 /**
- * 2. Extracts core search terms from bracketed alt-text strings 
+ * 2. Extracts core search terms from bracketed alt-text strings
  * (e.g., "[Everybody Loves Raymond Hello GIF by TV Land]" -> "Everybody Loves Raymond Hello")
  */
 /**
  * Extracts core terms from bracketed alt-text strings
  */
 function extractGiphySearchTerm(text) {
-  if (!text || typeof text !== "string") return null;
+  if (!text || typeof text !== "string")
+    return { searchTerm: null, author: null };
   const match = text.match(/^\[(.*?)\]$/);
-  if (!match) return null;
-
+  if (!match) return { searchTerm: null, author: null };
   let content = match[1];
+  let author = null;
 
-  // Check if it follows the "Title GIF by Author" pattern
   const byIndex = content.search(/\s+gif\s+by\s+/i);
   if (byIndex !== -1) {
-    // Everything before " GIF by " is the exact title of the GIF
+    author = content.substring(byIndex + 8).trim();
     content = content.substring(0, byIndex);
   }
 
-  // Fallback cleanup if "by" wasn't matched but trailing " GIF" exists
   content = content.replace(/\s+gif$/i, "").trim();
 
-  return content;
+  return { searchTerm: content, author: author };
+}
+
+/**
+ * Calculates token overlap score between search term and Giphy result title.
+ */
+function calculateTokenOverlapScore(searchTerm, gifTitle,targetAuthor, itemUser) {
+  if (!searchTerm || !gifTitle) return 0;
+  const searchTokens = searchTerm.toLowerCase().split(/\s+/).filter(Boolean);
+  const titleTokens = gifTitle.toLowerCase().split(/\s+/).filter(Boolean);
+  if (searchTokens.length === 0 || titleTokens.length === 0) return 0;
+
+  // If an author was specified in the brackets, penalize/disqualify items that don't match
+  if (targetAuthor && itemUser) {
+    const matchesAuthor =
+      itemUser.username?.toLowerCase().includes(targetAuthor.toLowerCase()) ||
+      itemUser.display_name?.toLowerCase().includes(targetAuthor.toLowerCase());
+    if (!matchesAuthor) return -1;
+  }
+
+  let matches = 0;
+  searchTokens.forEach((token) => {
+    if (titleTokens.includes(token)) {
+      matches++;
+    }
+  });
+
+  const score = matches / searchTokens.length;
+  console.log(
+    `[GiphyDebug] Token Overlap Number: ${score} (Search: "${searchTerm}" vs Title: "${gifTitle}")`,
+  );
+  return score;
 }
 
 /**
  * Uses the Giphy Translate endpoint for accurate phrase-to-GIF matching
  */
 async function fetchAndRenderGiphyGif(altTextString, container) {
-  const searchTerm = extractGiphySearchTerm(altTextString);
-  
+  const { searchTerm, author } = extractGiphySearchTerm(altTextString);
+
   if (!searchTerm || !GIPHY_API_KEY || GIPHY_API_KEY === "YOUR_GIPHY_API_KEY") {
     container.appendChild(document.createTextNode(` ${altTextString}`));
     return;
@@ -357,85 +399,39 @@ async function fetchAndRenderGiphyGif(altTextString, container) {
   img.style.display = "block";
   img.style.borderRadius = "6px";
   img.style.marginTop = "4px";
-  
+
   container.appendChild(img);
 
   try {
-    // Fetch top 10 results to evaluate best title match
-    const requestUrl = `https://api.giphy.com/v1/gifs/search?api_key=${encodeURIComponent(GIPHY_API_KEY)}&q=${encodeURIComponent(searchTerm)}&limit=10&rating=pg-13`;
-    
+    // Expanded inspection window to results to avoid missing relevant items
+    const requestUrl = `https://api.giphy.com/v1/gifs/search?api_key=${encodeURIComponent(GIPHY_API_KEY)}&q=${encodeURIComponent(searchTerm)}&rating=pg`;
+
     const response = await fetch(requestUrl);
-    if (!response.ok) throw new Error(`Giphy API responded with status: ${response.status}`);
+    if (!response.ok)
+      throw new Error(`Giphy API responded with status: ${response.status}`);
 
     const data = await response.json();
-    
+
     if (data.data && data.data.length > 0) {
-      const lowerSearchTerm = searchTerm.toLowerCase();
-      
-      // Try to find a GIF object whose title closely matches our exact search term
-      let matchedGif = data.data.find(item => 
-        item.title && item.title.toLowerCase().includes(lowerSearchTerm)
-      );
+      let bestMatch = null;
+      let highestScore = -1;
 
-      // If no close title match is found in the batch, fallback to the first result
-      if (!matchedGif) {
-        matchedGif = data.data[0];
-      }
+      // Evaluate each result using token overlap fuzzy matching
+      data.data.forEach((item) => {
+        const score = calculateTokenOverlapScore(
+          searchTerm,
+          item.title,
+          author,
+          item.user,
+        );
+        if (score > highestScore) {
+          highestScore = score;
+          bestMatch = item;
+        }
+      });
 
-      const gifUrl = matchedGif.images.fixed_height.url;
-      img.src = gifUrl;
-    } else {
-      img.remove();
-      container.appendChild(document.createTextNode(` ${altTextString}`));
-    }
-  } catch (err) {
-    console.error("Giphy API error:", err);
-    img.remove();
-    container.appendChild(document.createTextNode(` ${altTextString}`));
-  }
-}
-
-async function fetchAndRenderGiphyGif(altTextString, container) {
-  const searchTerm = extractGiphySearchTerm(altTextString);
-  
-  if (!searchTerm || !GIPHY_API_KEY || GIPHY_API_KEY === "YOUR_GIPHY_API_KEY") {
-    container.appendChild(document.createTextNode(` ${altTextString}`));
-    return;
-  }
-
-  const img = document.createElement("img");
-  img.alt = altTextString;
-  img.title = altTextString;
-  img.className = "chat-gif-embed";
-  img.style.maxWidth = "200px";
-  img.style.maxHeight = "150px";
-  img.style.display = "block";
-  img.style.borderRadius = "6px";
-  img.style.marginTop = "4px";
-  
-  container.appendChild(img);
-
-  try {
-    // Fetch top 10 results to evaluate best title match
-    const requestUrl = `https://api.giphy.com/v1/gifs/search?api_key=${encodeURIComponent(GIPHY_API_KEY)}&q=${encodeURIComponent(searchTerm)}&limit=10&rating=pg-13`;
-    
-    const response = await fetch(requestUrl);
-    if (!response.ok) throw new Error(`Giphy API responded with status: ${response.status}`);
-
-    const data = await response.json();
-    
-    if (data.data && data.data.length > 0) {
-      const lowerSearchTerm = searchTerm.toLowerCase();
-      
-      // Try to find a GIF object whose title closely matches our exact search term
-      let matchedGif = data.data.find(item => 
-        item.title && item.title.toLowerCase().includes(lowerSearchTerm)
-      );
-
-      // If no close title match is found in the batch, fallback to the first result
-      if (!matchedGif) {
-        matchedGif = data.data[0];
-      }
+      // Fallback to top result if no clear token overlap
+      let matchedGif = highestScore > 0 && bestMatch ? bestMatch : data.data[0];
 
       const gifUrl = matchedGif.images.fixed_height.url;
       img.src = gifUrl;
@@ -464,7 +460,9 @@ async function renderTwitchEmotes(text, emotesString, container) {
 
     // Check if the cleaned message is entirely a bracketed GIF alt-text string
     if (trimmedText.startsWith("[") && trimmedText.endsWith("]")) {
-      console.log("[GiphyDebug] Condition met: Message matches bracketed alt-text format. Bypassing emote map logic to trigger Giphy lookup.");
+      console.log(
+        "[GiphyDebug] Condition met: Message matches bracketed alt-text format. Bypassing emote map logic to trigger Giphy lookup.",
+      );
       container.textContent = " ";
       await fetchAndRenderGiphyGif(trimmedText, container);
       return;
@@ -526,9 +524,7 @@ async function renderTwitchEmotes(text, emotesString, container) {
     });
 
     if (lastIdx < text.length) {
-      container.appendChild(
-        document.createTextNode(text.substring(lastIdx)),
-      );
+      container.appendChild(document.createTextNode(text.substring(lastIdx)));
     }
   } catch (e) {
     console.error("[GiphyDebug] Twitch Emote / Alt-Text Rendering Error:", e);
@@ -541,9 +537,7 @@ function initTwitchChat(twitchChan) {
   twitchWs = new WebSocket("wss://irc-ws.chat.twitch.tv:443");
   twitchWs.onopen = () => {
     twitchWs.send("CAP REQ :twitch.tv/tags twitch.tv/commands");
-    twitchWs.send(
-      "NICK justinfan" + Math.floor(Math.random() * 89999 + 10000),
-    );
+    twitchWs.send("NICK justinfan" + Math.floor(Math.random() * 89999 + 10000));
     twitchWs.send(`JOIN #${twitchChan.toLowerCase()}`);
   };
   twitchWs.onmessage = (event) => {
@@ -559,10 +553,8 @@ function initTwitchChat(twitchChan) {
         const badgesMatch = tagsPart.match(/badges=([^;]*)/);
         const badgeInfoMatch = tagsPart.match(/badge-info=([^;]*)/);
 
-        const username =
-          userMatch && userMatch[1] ? userMatch[1] : "Unknown";
-        const color =
-          colorMatch && colorMatch[1] ? colorMatch[1] : "#b19cd9";
+        const username = userMatch && userMatch[1] ? userMatch[1] : "Unknown";
+        const color = colorMatch && colorMatch[1] ? colorMatch[1] : "#b19cd9";
         const emotesData =
           emotesMatch && emotesMatch[1] && emotesMatch[1] !== ":"
             ? emotesMatch[1]
@@ -572,18 +564,14 @@ function initTwitchChat(twitchChan) {
             ? badgesMatch[1]
             : null;
         const badgeInfo =
-          badgeInfoMatch &&
-          badgeInfoMatch[1] &&
-          badgeInfoMatch[1] !== ":"
+          badgeInfoMatch && badgeInfoMatch[1] && badgeInfoMatch[1] !== ":"
             ? badgeInfoMatch[1]
             : null;
 
         const msgIndex = data.indexOf("PRIVMSG");
         const trailingIndex = data.indexOf(" :", msgIndex);
         const msgText =
-          trailingIndex !== -1
-            ? data.substring(trailingIndex + 2).trim()
-            : "";
+          trailingIndex !== -1 ? data.substring(trailingIndex + 2).trim() : "";
 
         appendMessage(
           "Twitch",
