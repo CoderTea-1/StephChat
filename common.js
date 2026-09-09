@@ -4,6 +4,7 @@ let ytTimeouts = [];
 let twitchWs = null;
 let pusherInstance = null;
 const seenKickIds = new Set();
+let isScrollingEnabled = true;
 
 // Configuration mapping chat trigger keywords to specific symbol animations
 const emoteTriggers = {
@@ -282,9 +283,10 @@ function appendMessage(
   messageDiv.appendChild(contentDiv);
 
   chatContainer.appendChild(messageDiv);
-  chatContainer.scrollTop = chatContainer.scrollHeight;
 
-
+  if (isScrollingEnabled) {
+    chatContainer.scrollTop = chatContainer.scrollHeight;
+  }
   // const MAX_MESSAGES = 20;
   // while (chatContainer.children.length > MAX_MESSAGES) {
   //   chatContainer.removeChild(chatContainer.firstChild);
@@ -550,6 +552,26 @@ window.addEventListener("DOMContentLoaded", () => {
   initButterflies();
   initEmoteToggles();
   loadSettingsOnStartup();
+
+  /* State variable for scrolling toggle (not saved) */
+  let isScrollingEnabled = true;
+
+  document
+    .getElementById("toggle-scroll-btn")
+    ?.addEventListener("click", () => {
+      isScrollingEnabled = !isScrollingEnabled;
+      const btn = document.getElementById("toggle-scroll-btn");
+      btn.textContent = `Scrolling: ${isScrollingEnabled ? "ON" : "OFF"}`;
+
+      if (isScrollingEnabled) {
+        // Re-enable normal scrolling
+        chatContainer.style.setProperty("overflow-y", "auto", "important");
+      } else {
+        // Jump to bottom immediately and completely lock manual scrolling
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+        chatContainer.style.setProperty("overflow-y", "hidden", "important");
+      }
+    });
 
   const urlParams = new URLSearchParams(window.location.search);
   if (urlParams.get("hideconfig") === "true") {
