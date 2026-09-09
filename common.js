@@ -250,8 +250,8 @@ function appendMessage(
 
   const userSpan = document.createElement("span");
   userSpan.className = "username";
-  userSpan.style.color =
-    color && color.toLowerCase() === "#000000" ? "#ffffff" : color;
+  let resolvedColor = color;
+  if (
     !resolvedColor ||
     resolvedColor.toLowerCase() === "#b19cd9" ||
     resolvedColor.toLowerCase() === "rgb(177, 156, 217)" ||
