@@ -211,10 +211,12 @@ function renderYouTubeEmotes(fallbackText, messageRuns, container) {
         parseColonEmotesIntoContainer(run.text, container);
       } else if (run.emoji) {
         const emojiData = run.emoji;
-        const shortcuts = emojiData.shortcuts || emojiData.searchTerms || ["emoji"];
+        const shortcuts = emojiData.shortcuts ||
+          emojiData.searchTerms || ["emoji"];
         const altText = shortcuts[0] || "emoji";
         const highestResThumbnail =
-          emojiData.image?.thumbnails?.[emojiData.image.thumbnails.length - 1]?.url;
+          emojiData.image?.thumbnails?.[emojiData.image.thumbnails.length - 1]
+            ?.url;
 
         if (highestResThumbnail) {
           const img = document.createElement("img");
@@ -325,7 +327,9 @@ async function initYouTubeChat(channelId) {
     if (keyPool.length === 0) return;
     currentKeyIndex = (currentKeyIndex + 1) % keyPool.length;
     consecutiveKeyFailures++;
-    console.info(`[YouTube Debug] Rotated to next key index -> ${currentKeyIndex} (Masked: ${maskKey(getCurrentKey())})`);
+    console.info(
+      `[YouTube Debug] Rotated to next key index -> ${currentKeyIndex} (Masked: ${maskKey(getCurrentKey())})`,
+    );
   }
 
   function maskKey(key) {
@@ -345,7 +349,7 @@ async function initYouTubeChat(channelId) {
 
   async function trackApiRequest(endpointName) {
     localRequestCount++;
-    console.info(`[YouTube Debug] API Pull executed (${endpointName}). Local request count: ${localRequestCount}`);
+    // console.info(`[YouTube Debug] API Pull executed (${endpointName}). Local request count: ${localRequestCount}`);
     try {
       const response = await fetch("/api/increment-counter", {
         method: "POST",
@@ -355,18 +359,18 @@ async function initYouTubeChat(channelId) {
       const data = await response.json();
 
       if (data && typeof data.totalToday === "number") {
-        console.log(
-          `[YouTube API Counter] Total requests used today across all devices: ${data.totalToday}`,
-        );
+        // console.log(
+        //   `[YouTube API Counter] Total requests used today across all devices: ${data.totalToday}`,
+        // );
       } else {
-        console.log(
-          `[YouTube API Counter] Requests today (Local fallback count): ${localRequestCount}`,
-        );
+        // console.log(
+        //   `[YouTube API Counter] Requests today (Local fallback count): ${localRequestCount}`,
+        // );
       }
     } catch (err) {
-      console.log(
-        `[YouTube API Counter] Requests today (Local fallback count): ${localRequestCount} (Backend sync skipped/failed)`,
-      );
+      // console.log(
+      //   `[YouTube API Counter] Requests today (Local fallback count): ${localRequestCount} (Backend sync skipped/failed)`,
+      // );
     }
   }
 
@@ -375,7 +379,7 @@ async function initYouTubeChat(channelId) {
       const msToMidnight = getTimeUntilMidnight();
       const hoursLeft = (msToMidnight / (1000 * 60 * 60)).toFixed(2);
       console.error(
-        `[YouTube Debug] All ${keyPool.length} API keys have failed. Stopping rotation and waiting until midnight (~${hoursLeft} hours) to resume.`
+        `[YouTube Debug] All ${keyPool.length} API keys have failed. Stopping rotation and waiting until midnight (~${hoursLeft} hours) to resume.`,
       );
       triggerErrorFlash();
       const t = setTimeout(fetchYouTubeChat, msToMidnight);
@@ -508,7 +512,9 @@ async function initYouTubeChat(channelId) {
       const MIN_SAFE_INTERVAL = 15000;
       const nextInterval = Math.max(suggestedInterval, MIN_SAFE_INTERVAL);
 
-      console.info(`[YouTube Debug] Scheduling next poll in ${nextInterval}ms using pollingIntervalMillis + safeguards.`);
+      console.info(
+        `[YouTube Debug] Scheduling next poll in ${nextInterval}ms using pollingIntervalMillis + safeguards.`,
+      );
       const t = setTimeout(fetchYouTubeChat, nextInterval);
       ytTimeouts.push(t);
     } catch (err) {

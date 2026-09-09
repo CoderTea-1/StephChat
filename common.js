@@ -252,6 +252,15 @@ function appendMessage(
   userSpan.className = "username";
   userSpan.style.color =
     color && color.toLowerCase() === "#000000" ? "#ffffff" : color;
+    !resolvedColor ||
+    resolvedColor.toLowerCase() === "#b19cd9" ||
+    resolvedColor.toLowerCase() === "rgb(177, 156, 217)" ||
+    resolvedColor.toLowerCase() === "rgb(177,156,217)"
+  ) {
+    resolvedColor = "#ffffff";
+  }
+
+  userSpan.style.color = resolvedColor;
   userSpan.textContent = `${username}:`;
   headerDiv.appendChild(userSpan);
 
@@ -274,6 +283,12 @@ function appendMessage(
 
   chatContainer.appendChild(messageDiv);
   chatContainer.scrollTop = chatContainer.scrollHeight;
+
+
+  // const MAX_MESSAGES = 20;
+  // while (chatContainer.children.length > MAX_MESSAGES) {
+  //   chatContainer.removeChild(chatContainer.firstChild);
+  // }
 }
 
 /* Helper function to generate fallback styled text or images for user badges */
@@ -498,6 +513,18 @@ async function loadSettingsOnStartup() {
 
 /* Master startChat function combining individual platform initialization */
 async function startChat() {
+  setInterval(() => {
+    //console.clear();
+  }, 6000); // Clears every 1 minute
+  if (twitchWs) {
+    twitchWs.onclose = null;
+    twitchWs.close();
+    twitchWs = null;
+  }
+  if (pusherInstance) {
+    pusherInstance.disconnect();
+    pusherInstance = null;
+  }
   const twitchChan = document.getElementById("twitch-channel").value.trim();
   const kickChan = document.getElementById("kick-channel").value.trim();
   const ytHandle = document.getElementById("yt-handle").value.trim();
