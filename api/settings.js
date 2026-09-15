@@ -8,6 +8,7 @@ const defaultSettings = {
   kickChannel: "",
   ytHandle: "",
   ytApiKey: "",
+  pinnedAnnouncement: "",
   userboxColor: "#af98dc",     // Matches the RGB from --header-bg
   userboxOpacity: "0.9",      // Matches the alpha from --header-bg
   msgboxColor: "#ff69b4",     // Matches the RGB from --message-bg

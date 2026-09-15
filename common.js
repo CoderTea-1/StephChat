@@ -404,6 +404,7 @@ async function saveCurrentSettingsToCloud() {
       kickChannel: document.getElementById("kick-channel")?.value || "",
       ytHandle: document.getElementById("yt-handle")?.value || "",
       ytApiKey: document.getElementById("yt-api-key")?.value || "",
+      pinnedAnnouncement: document.getElementById("pinned-input")?.value || "",
       userboxColor:
         document.getElementById("userbox-color-picker")?.value || "",
       userboxOpacity:
@@ -507,6 +508,12 @@ async function loadSettingsOnStartup() {
     if (typeof updateMsgBoxColor === "function") updateMsgBoxColor();
     if (typeof updateTextColor === "function") updateTextColor();
 
+    if (settings.pinnedAnnouncement) {
+      const el = document.getElementById("pinned-input");
+      if (el) el.value = settings.pinnedAnnouncement;
+      setPinnedAnnouncement(settings.pinnedAnnouncement);
+    }
+
     console.info("Loaded and applied cloud settings on startup:", settings);
   } catch (err) {
     console.error("Error loading settings on startup:", err);
@@ -515,6 +522,17 @@ async function loadSettingsOnStartup() {
 
 /* Master startChat function combining individual platform initialization */
 async function startChat() {
+  const twitchChan = document.getElementById("twitch-channel").value.trim();
+  const kickChan = document.getElementById("kick-channel").value.trim();
+  const ytHandle = document.getElementById("yt-handle").value.trim();
+  const ytKeyInput = document.getElementById("yt-api-key").value.trim();
+  if (twitchChan) localStorage.setItem("stream_twitch_channel", twitchChan);
+  if (kickChan) localStorage.setItem("stream_kick_channel", kickChan);
+  if (ytHandle) localStorage.setItem("stream_yt_handle", ytHandle);
+  if (ytKeyInput) localStorage.setItem("stream_yt_key", ytKeyInput);
+
+  chatContainer.innerHTML = "";
+
   setInterval(() => {
     //console.clear();
   }, 6000); // Clears every 1 minute
@@ -527,16 +545,7 @@ async function startChat() {
     pusherInstance.disconnect();
     pusherInstance = null;
   }
-  const twitchChan = document.getElementById("twitch-channel").value.trim();
-  const kickChan = document.getElementById("kick-channel").value.trim();
-  const ytHandle = document.getElementById("yt-handle").value.trim();
-  const ytKeyInput = document.getElementById("yt-api-key").value.trim();
-  if (twitchChan) localStorage.setItem("stream_twitch_channel", twitchChan);
-  if (kickChan) localStorage.setItem("stream_kick_channel", kickChan);
-  if (ytHandle) localStorage.setItem("stream_yt_handle", ytHandle);
-  if (ytKeyInput) localStorage.setItem("stream_yt_key", ytKeyInput);
 
-  chatContainer.innerHTML = "";
   ytTimeouts.forEach((t) => clearTimeout(t));
   ytTimeouts = [];
   if (twitchWs) twitchWs.close();
@@ -546,12 +555,50 @@ async function startChat() {
   if (kickChan) initKickChat(kickChan);
   if (ytHandle) initYouTubeChat(ytHandle);
 }
+let reconnectAttempts = 0;
+const MAX_RECONNECT_ATTEMPTS = 10;
+
+async function startChatWithRetry() {
+  await startChat();
+
+  // Check if Twitch or YouTube failed to initialize and retry
+  const twitchChan = document.getElementById("twitch-channel")?.value.trim();
+  const ytHandle = document.getElementById("yt-handle")?.value.trim();
+
+  const needsTwitchRetry =
+    twitchChan && (!twitchWs || twitchWs.readyState !== WebSocket.OPEN);
+
+  if (needsTwitchRetry && reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+    reconnectAttempts++;
+    console.warn(
+      `[Auto-Reconnect] Retrying connection attempt ${reconnectAttempts}...`,
+    );
+    setTimeout(startChatWithRetry, 3000);
+  } else if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
+    console.error("[Auto-Reconnect] Max reconnection attempts reached.");
+  }
+}
 
 /* DOM Content Loaded Event Handlers */
 window.addEventListener("DOMContentLoaded", () => {
   initButterflies();
   initEmoteToggles();
   loadSettingsOnStartup();
+
+  const savedAnnouncement = localStorage.getItem("stream_pinned_announcement");
+  const pinnedInput = document.getElementById("pinned-input");
+
+  if (savedAnnouncement) {
+    setPinnedAnnouncement(savedAnnouncement);
+    if (pinnedInput) pinnedInput.value = savedAnnouncement;
+  } else {
+    setPinnedAnnouncement("Your message here!");
+    if (pinnedInput) pinnedInput.value = "Your message here!";
+  }
+
+  pinnedInput?.addEventListener("input", (e) => {
+    setPinnedAnnouncement(e.target.value);
+  });
 
   // Ensure button text matches initial 'OFF' state
   const scrollBtn = document.getElementById("toggle-scroll-btn");
@@ -584,14 +631,16 @@ window.addEventListener("DOMContentLoaded", () => {
 
   chatContainer.addEventListener("scroll", () => {
     const currentScrollTop = chatContainer.scrollTop;
-    const isAtBottom = currentScrollTop + chatContainer.clientHeight >= chatContainer.scrollHeight - 5;
+    const isAtBottom =
+      currentScrollTop + chatContainer.clientHeight >=
+      chatContainer.scrollHeight - 5;
 
     if (isUserScrolling) {
       // If user scrolls UP, set to ON
       if (currentScrollTop < lastScrollTop) {
         isScrollingEnabled = true;
         if (scrollBtn) scrollBtn.textContent = "Scrolling: ON";
-      } 
+      }
       // If user scrolls down to the BOTTOM, set to OFF (without locking overflow)
       else if (isAtBottom) {
         isScrollingEnabled = false;
@@ -609,7 +658,10 @@ window.addEventListener("DOMContentLoaded", () => {
   const urlParams = new URLSearchParams(window.location.search);
   if (urlParams.get("hideconfig") === "true") {
     document.getElementById("config-bar").style.display = "none";
-    startChat();
+    // Wait for settings to load from cloud/storage before starting chat
+    loadSettingsOnStartup().then(() => {
+      startChatWithRetry();
+    });
   }
 
   // Clear Color Settings Handler
@@ -676,4 +728,22 @@ window.addEventListener("DOMContentLoaded", () => {
 
       window.location.reload();
     });
+
+  /* Updates and displays the pinned announcement bar */
+  function setPinnedAnnouncement(text) {
+    const bar = document.getElementById("pinned-announcement-bar");
+    const textSpan = document.getElementById("announcement-text");
+
+    if (!bar || !textSpan) return;
+
+    if (text && text.trim().length > 0) {
+      textSpan.textContent = text;
+      bar.classList.add("active");
+      localStorage.setItem("stream_pinned_announcement", text);
+    } else {
+      textSpan.textContent = "";
+      bar.classList.remove("active");
+      localStorage.removeItem("stream_pinned_announcement");
+    }
+  }
 });
