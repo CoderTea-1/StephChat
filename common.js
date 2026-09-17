@@ -129,6 +129,7 @@ function isImageUrl(str) {
     str.startsWith("http://") ||
     str.startsWith("https://") ||
     str.startsWith("/") ||
+    str.includes("images/") ||
     str.includes(".")
   );
 }
@@ -247,6 +248,31 @@ function appendMessage(
     renderTwitchBadges(twitchBadges, badgeInfo, headerDiv);
   } else if (platform === "Kick" && kickBadges.length > 0) {
     renderKickBadges(kickBadges, headerDiv);
+  }
+
+  // Inside appendMessage, replace the random check with this logic:
+  let isPrismana = false;
+
+  // Guaranteed Prismana for Masster_tea
+  if (username && username.toLowerCase() === "masster_tea") {
+    isPrismana = true;
+  } else {
+    // Check if user is a VIP (e.g., via Twitch badges or platform metadata)
+    const isVip =
+      (twitchBadges &&
+        (twitchBadges.includes("vip") || twitchBadges.hasOwnProperty("vip"))) ||
+      (badgeInfo && badgeInfo.includes("vip"));
+
+    // Higher chance for VIPs (e.g., 20%), standard chance for others (e.g., 5%)
+    const prismanaChance = isVip ? .2 : 0.05;
+
+    if (Math.random() < prismanaChance) {
+      isPrismana = true;
+    }
+  }
+
+  if (isPrismana) {
+    messageDiv.classList.add("prismana-rare");
   }
 
   const userSpan = document.createElement("span");
@@ -591,13 +617,25 @@ window.addEventListener("DOMContentLoaded", () => {
   if (savedAnnouncement) {
     setPinnedAnnouncement(savedAnnouncement);
     if (pinnedInput) pinnedInput.value = savedAnnouncement;
-  } else {
-    setPinnedAnnouncement("Your message here!");
-    if (pinnedInput) pinnedInput.value = "Your message here!";
+  } else if (!pinnedInput?.value || pinnedInput.value === "") {
+    // setPinnedAnnouncement("Your message here!");
+    // if (pinnedInput) pinnedInput.value = "Your message here!";
   }
 
   pinnedInput?.addEventListener("input", (e) => {
+    const text = e.target.value;
+    setPinnedAnnouncement(text);
+    clearTimeout(window.announcementSaveTimeout);
+    window.announcementSaveTimeout = setTimeout(() => {
+      saveCurrentSettingsToCloud();
+    }, 1000); // Debounce by 500ms / 1s or save on change
+  });
+
+  // Force immediate save when clicking away or pressing enter
+  pinnedInput?.addEventListener("blur", (e) => {
+    clearTimeout(window.announcementSaveTimeout);
     setPinnedAnnouncement(e.target.value);
+    saveCurrentSettingsToCloud();
   });
 
   // Ensure button text matches initial 'OFF' state
@@ -658,9 +696,44 @@ window.addEventListener("DOMContentLoaded", () => {
   const urlParams = new URLSearchParams(window.location.search);
   if (urlParams.get("hideconfig") === "true") {
     document.getElementById("config-bar").style.display = "none";
-    // Wait for settings to load from cloud/storage before starting chat
-    loadSettingsOnStartup().then(() => {
+
+    let lastSettingsString = "";
+
+    async function pollCloudSettings() {
+      try {
+        const response = await fetch("/api/settings");
+        if (response.ok) {
+          const settings = await response.json();
+          const currentString = JSON.stringify(settings);
+
+          if (lastSettingsString && currentString !== lastSettingsString) {
+            console.info(
+              "[OBS Sync] New settings detected from browser control panel. Refreshing chat...",
+            );
+            await loadSettingsOnStartup();
+            startChatWithRetry();
+          }
+          lastSettingsString = currentString;
+        }
+      } catch (err) {
+        console.error("Error polling cloud settings:", err);
+      }
+    }
+
+    // Initial load and start
+    loadSettingsOnStartup().then(async () => {
+      try {
+        const res = await fetch("/api/settings");
+        if (res.ok) {
+          const data = await res.json();
+          lastSettingsString = JSON.stringify(data);
+        }
+      } catch (e) {}
+
       startChatWithRetry();
+
+      // Poll cloud settings every 5 seconds for changes triggered by the control panel
+      setInterval(pollCloudSettings, 5000);
     });
   }
 
@@ -728,22 +801,35 @@ window.addEventListener("DOMContentLoaded", () => {
 
       window.location.reload();
     });
-
-  /* Updates and displays the pinned announcement bar */
-  function setPinnedAnnouncement(text) {
-    const bar = document.getElementById("pinned-announcement-bar");
-    const textSpan = document.getElementById("announcement-text");
-
-    if (!bar || !textSpan) return;
-
-    if (text && text.trim().length > 0) {
-      textSpan.textContent = text;
-      bar.classList.add("active");
-      localStorage.setItem("stream_pinned_announcement", text);
-    } else {
-      textSpan.textContent = "";
-      bar.classList.remove("active");
-      localStorage.removeItem("stream_pinned_announcement");
-    }
-  }
 });
+/* Updates and displays the pinned announcement bar */
+function setPinnedAnnouncement(text) {
+  const bar = document.getElementById("pinned-announcement-bar");
+  const textSpan = document.getElementById("announcement-text");
+
+  if (!bar || !textSpan) return;
+
+  if (text && text.trim().length > 0) {
+    textSpan.textContent = text;
+    bar.classList.add("active");
+    localStorage.setItem("stream_pinned_announcement", text);
+  } else {
+    textSpan.textContent = "";
+    bar.classList.remove("active");
+    localStorage.removeItem("stream_pinned_announcement");
+  }
+}
+
+function getPlatformBadge(source) {
+  const srcLower = source ? source.toLowerCase() : "";
+  switch (srcLower) {
+    case "twitch":
+      return '<span class="badge twitch">Twitch</span>';
+    case "youtube":
+      return '<span class="badge youtube">YouTube</span>';
+    case "kick":
+      return '<span class="badge kick">Kick</span>';
+    default:
+      return `<span class="badge ${srcLower}">${source}</span>`;
+  }
+}

@@ -363,3 +363,53 @@ button:hover {
     opacity: 0;
   }
 }
+
+#pinned-input {
+  resize: vertical;
+  min-height: 38px;
+  max-height: 150px;
+  padding: 8px;
+  font-family: inherit;
+  transition: height 0.2s ease;
+  flex: 1;
+  min-width: 150px;
+  background: rgba(30, 30, 35, 0.9);
+  color: white;
+  border: 1px solid rgba(255, 105, 180, 0.3);
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+#pinned-input:focus {
+  height: 90px;
+}
+
+/* Prismana-Rare Crystalline Message Effect - Fast & Bright */
+.message.prismana-rare {
+  border: 4px solid transparent;
+  background-image: linear-gradient(var(--message-bg), var(--message-bg)), linear-gradient(135deg, #ff007f, #53fc18, #00a699, #ff69b4, #53fc18);
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
+  box-shadow: 0 0 20px rgba(83, 252, 24, 0.6), 0 0 10px rgba(255, 0, 127, 0.5);
+  /* Restored fast hue rotation for quick shifting combined with a bright pulse */
+  animation: prismanaShiftFast 3s linear infinite, prismanaGlowPulse 2s ease-in-out infinite alternate;
+}
+
+@keyframes prismanaShiftFast {
+  0% { filter: hue-rotate(0deg); }
+  100% { filter: hue-rotate(360deg); }
+}
+
+@keyframes prismanaGlowPulse {
+  0% {
+    box-shadow: 0 0 15px rgba(83, 252, 24, 0.4), 0 0 8px rgba(255, 0, 127, 0.3);
+    filter: brightness(1) hue-rotate(var(--tw-hue, 0deg));
+  }
+  100% {
+    box-shadow: 0 0 25px rgba(83, 252, 24, 0.8), 0 0 14px rgba(255, 0, 127, 0.6);
+    filter: brightness(1.2) hue-rotate(var(--tw-hue, 0deg));
+  }
+}

@@ -351,7 +351,12 @@ function extractGiphySearchTerm(text) {
 /**
  * Calculates token overlap score between search term and Giphy result title.
  */
-function calculateTokenOverlapScore(searchTerm, gifTitle,targetAuthor, itemUser) {
+function calculateTokenOverlapScore(
+  searchTerm,
+  gifTitle,
+  targetAuthor,
+  itemUser,
+) {
   if (!searchTerm || !gifTitle) return 0;
   const searchTokens = searchTerm.toLowerCase().split(/\s+/).filter(Boolean);
   const titleTokens = gifTitle.toLowerCase().split(/\s+/).filter(Boolean);
@@ -583,6 +588,14 @@ function initTwitchChat(twitchChan) {
       } catch (e) {
         console.error("Twitch parsing error:", e);
       }
-    }
+    };
+    twitchWs.onclose = () => {
+      console.warn("[Twitch] Connection closed. Reconnecting in 5 seconds...");
+      setTimeout(() => {
+        if (document.getElementById("twitch-channel")?.value) {
+          initTwitchChat(twitchChan);
+        }
+      }, 5000);
+    };
   };
 }
