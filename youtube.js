@@ -280,9 +280,43 @@ function parseColonEmotesIntoContainer(text, container) {
 }
 
 const seenYtMessageIds = new Set();
+let ytPollInterval = null;
+let currentLiveChatId = null;
 
 /* YouTube Chat Initialization using Channel ID with Key Rotation, Exhaustion Check, and Midnight Wait */
 async function initYouTubeChat(channelId) {
+  const apiKeyInput = document.getElementById("yt-api-key")?.value || "";
+  const apiKeys = apiKeyInput
+    .split(",")
+    .map((k) => k.trim())
+    .filter(Boolean);
+  if (apiKeys.length === 0) return;
+  const apiKey = apiKeys[0];
+
+  async function fetchActiveChatId() {
+    try {
+      const searchRes = await fetch(
+        `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${encodeURIComponent(ytHandle)}&eventType=live&type=video&key=${apiKey}`,
+      );
+      const searchData = await searchRes.json();
+
+      if (searchData.items && searchData.items.length > 0) {
+        const videoId = searchData.items[0].id.videoId;
+        const videoRes = await fetch(
+          `https://www.googleapis.com/youtube/v3/videos?part=liveStreamingDetails&id=${videoId}&key=${apiKey}`,
+        );
+        const videoData = await videoRes.json();
+
+        if (videoData.items && videoData.items.length > 0) {
+          return videoData.items[0].liveStreamingDetails?.activeLiveChatId;
+        }
+      }
+    } catch (err) {
+      console.error("Error fetching YouTube live chat ID:", err);
+    }
+    return null;
+  }
+
   let nextPageToken = "";
   let activeLiveChatId = null;
   let isInitialFetch = true;
@@ -372,6 +406,52 @@ async function initYouTubeChat(channelId) {
       //   `[YouTube API Counter] Requests today (Local fallback count): ${localRequestCount} (Backend sync skipped/failed)`,
       // );
     }
+
+    const pollChat = async () => {
+      if (!currentLiveChatId) {
+        currentLiveChatId = await fetchActiveChatId();
+        if (!currentLiveChatId) {
+          // Retry searching for the new stream every 15 seconds if not live yet
+          setTimeout(pollChat, 15000);
+          return;
+        }
+      }
+
+      try {
+        let url = `https://api.giphy.com/v1/gifs/search?...`; // Keep your existing request builder
+        let chatUrl = `https://www.googleapis.com/youtube/v3/liveChat/messages?liveChatId=${currentLiveChatId}&part=snippet,authorDetails&key=${apiKey}`;
+        if (nextPageToken) chatUrl += `&pageToken=${nextPageToken}`;
+
+        const res = await fetch(chatUrl);
+        if (!res.ok) {
+          // If stream ended (404/403), reset chat ID so it searches for the new stream
+          if (res.status === 404 || res.status === 403) {
+            currentLiveChatId = null;
+            nextPageToken = "";
+          }
+          setTimeout(pollChat, 5000);
+          return;
+        }
+
+        const data = await res.json();
+        nextPageToken = data.nextPageToken;
+
+        if (data.items) {
+          data.items.forEach((item) => {
+            const author = item.authorDetails.displayName;
+            const text = item.snippet.displayMessage;
+            appendMessage("YouTube", author, text, "#ff0000");
+          });
+        }
+
+        setTimeout(pollChat, data.pollingIntervalMillis || 5000);
+      } catch (err) {
+        console.error("YouTube Polling Error:", err);
+        setTimeout(pollChat, 10000);
+      }
+    };
+
+    pollChat();
   }
 
   async function fetchYouTubeChat() {

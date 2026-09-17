@@ -132,7 +132,9 @@
           style="display: none"
         />
       </div>
-      <input type="text" id="pinned-input" placeholder="Pinned Message" />
+      <textarea id="pinned-input" placeholder="Pinned Message" rows="1">
+🚀 Aniimo Global Launch Special! Welcome Pathfinders to Idyll! 🐾✨</textarea
+      >
 
       <!-- Emote Wall Configuration Toggles (Dynamically Generated) -->
       <div
@@ -173,6 +175,15 @@
       <button id="clearEmotesBtn">Clear Emote Settings</button>
     </div>
 
+    <!-- Aniimo Launch Countdown Widget
+    <div id="aniimo-countdown-widget" class="countdown-panel">
+      <div class="countdown-header">🐾 IDYLL EXPEDITION LAUNCH IN:</div>
+      <div id="countdown-timer">
+        <span id="hours">00</span>h : <span id="minutes">00</span>m :
+        <span id="seconds">00</span>s
+      </div>
+    </div> -->
+
     <div id="pinned-announcement-bar">
       <span id="announcement-text"></span>
     </div>
@@ -185,5 +196,6 @@
     <script src="twitch.js"></script>
     <script src="kick.js"></script>
     <script src="youtube.js"></script>
+    <script src="countdown.js"></script>
   </body>
 </html>

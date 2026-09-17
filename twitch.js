@@ -3,21 +3,28 @@
 // ==========================================
 const TWITCH_CUSTOM_SUB_BADGES = {
   1000: {
-    1: "https://static-cdn.jtvnw.net/badges/v1/76944067-c338-4bae-ac48-9ba8e41b2ac9/3",
-    2: "https://static-cdn.jtvnw.net/badges/v1/07c5af2b-64d4-4a95-af78-985a431b193b/3",
-    3: "https://static-cdn.jtvnw.net/badges/v1/1be69220-6ecc-457a-83e5-26b423bf7206/3",
-    6: "https://static-cdn.jtvnw.net/badges/v1/6e99ee74-a597-40f3-8cff-344a2f24f8c2/3",
-    9: "https://static-cdn.jtvnw.net/badges/v1/0fb449ae-4119-40cb-bde6-769175d81fe1/3",
-    12: "https://static-cdn.jtvnw.net/badges/v1/b6da6872-f2f1-4ecc-ad8a-98daee453094/3",
+    1: "https://worldx-website-cdn.aniimo.com/official-website/worldx/wiki_stage/init/Wiki_Aniimo_10051.png",
+    2: "https://worldx-website-cdn.aniimo.com/official-website/worldx/wiki_stage/init/Wiki_Aniimo_10051.png",
+    3: "https://worldx-website-cdn.aniimo.com/official-website/worldx/wiki_stage/init/Wiki_Aniimo_10051.png",
+    6: "https://worldx-website-cdn.aniimo.com/official-website/worldx/wiki_stage/init/Wiki_Aniimo_10051.png",
+    9: "https://worldx-website-cdn.aniimo.com/official-website/worldx/wiki_stage/init/Wiki_Aniimo_10051.png",
+    12: "https://worldx-website-cdn.aniimo.com/official-website/worldx/wiki_stage/init/Wiki_Aniimo_10051.png",
   },
   2000: {
-    3: "https://static-cdn.jtvnw.net/badges/v1/9bde5f43-f400-4b44-b835-9cb683cc4eb4/3",
-    6: "https://static-cdn.jtvnw.net/badges/v1/40bd7b04-21f9-432e-a07e-af0d9d7aa03c/3",
-    12: "https://static-cdn.jtvnw.net/badges/v1/8520b1c4-a7e7-4351-ac76-9607b6429b3c/3",
+    1: "https://worldx-website-cdn.aniimo.com/official-website/worldx/wiki_stage/init/Wiki_Aniimo_10052.png",
+    2: "https://worldx-website-cdn.aniimo.com/official-website/worldx/wiki_stage/init/Wiki_Aniimo_10052.png",
+    3: "https://worldx-website-cdn.aniimo.com/official-website/worldx/wiki_stage/init/Wiki_Aniimo_10052.png",
+    6: "https://worldx-website-cdn.aniimo.com/official-website/worldx/wiki_stage/init/Wiki_Aniimo_10052.png",
+    9: "https://worldx-website-cdn.aniimo.com/official-website/worldx/wiki_stage/init/Wiki_Aniimo_10052.png",
+    12: "https://worldx-website-cdn.aniimo.com/official-website/worldx/wiki_stage/init/Wiki_Aniimo_10052.png",
   },
   3000: {
-    9: "https://static-cdn.jtvnw.net/badges/v1/280cadb1-4d04-456d-8183-4dac1420f395/3",
-    12: "https://static-cdn.jtvnw.net/badges/v1/1e5586b1-044c-4afe-a888-1c2a5e9a0f65/3",
+    1: "https://worldx-website-cdn.aniimo.com/official-website/worldx/wiki_stage/init/Wiki_Aniimo_10053.png",
+    2: "https://worldx-website-cdn.aniimo.com/official-website/worldx/wiki_stage/init/Wiki_Aniimo_10053.png",
+    3: "https://worldx-website-cdn.aniimo.com/official-website/worldx/wiki_stage/init/Wiki_Aniimo_10053.png",
+    6: "https://worldx-website-cdn.aniimo.com/official-website/worldx/wiki_stage/init/Wiki_Aniimo_10053.png",
+    9: "https://worldx-website-cdn.aniimo.com/official-website/worldx/wiki_stage/init/Wiki_Aniimo_10053.png",
+    12: "https://worldx-website-cdn.aniimo.com/official-website/worldx/wiki_stage/init/Wiki_Aniimo_10053.png",
   },
 };
 
@@ -52,8 +59,6 @@ const TWITCH_SPECIAL_BADGES = {
     "https://static-cdn.jtvnw.net/badges/v1/0d9fe96b-97b7-4215-b5f3-5328ebad271c/2",
   gifter_leader_3:
     "https://static-cdn.jtvnw.net/badges/v1/4c6e4497-eed9-4dd3-ac64-e0599d0a63e5/2",
-  lead_mod:
-    "https://static-cdn.jtvnw.net/badges/v1/0822047b-65e0-46f2-94a9-d1091d685d33/3",
   verified:
     "https://static-cdn.jtvnw.net/badges/v1/d12a2e27-16f6-41d0-ab77-b780518f00a3/3",
 };
@@ -253,19 +258,19 @@ function renderTwitchBadges(badgesString, badgeInfoString, container) {
       ) {
         imgSrc =
           TWITCH_SPECIAL_BADGES["lead_mod"] ||
-          "https://static-cdn.jtvnw.net/badges/v1/861dbe71-bdf7-417d-ace3-500e263c9372/3";
+          "https://aniidex.com/_ipx/q_95&fit_inside&s_224x224/images/items/ui_item_554003.webp";
         altText = "Lead Moderator";
         fallbackText = "LEAD MOD";
         fallbackStyle += "background:#00a699;";
       } else if (badgeName === "moderator") {
         imgSrc =
-          "https://static-cdn.jtvnw.net/badges/v1/3267646d-33f0-4b17-b3df-f923a41db1d0/3";
+          "https://aniidex.com/_ipx/q_95&fit_inside&s_224x224/images/items/ui_item_554001.webp";
         altText = "Moderator";
         fallbackText = "MOD";
         fallbackStyle += "background:#0000FF;";
       } else if (badgeName === "vip") {
         imgSrc =
-          "https://static-cdn.jtvnw.net/badges/v1/b817aba4-fad8-49e2-b88a-7cc744dfa6ec/3";
+          "https://aniidex.com/_ipx/q_95&fit_inside&s_224x224/images/items/ui_item_4001052.webp";
         altText = "VIP";
         fallbackText = "VIP";
         fallbackStyle += "background:#e0115f;";
@@ -351,7 +356,12 @@ function extractGiphySearchTerm(text) {
 /**
  * Calculates token overlap score between search term and Giphy result title.
  */
-function calculateTokenOverlapScore(searchTerm, gifTitle,targetAuthor, itemUser) {
+function calculateTokenOverlapScore(
+  searchTerm,
+  gifTitle,
+  targetAuthor,
+  itemUser,
+) {
   if (!searchTerm || !gifTitle) return 0;
   const searchTokens = searchTerm.toLowerCase().split(/\s+/).filter(Boolean);
   const titleTokens = gifTitle.toLowerCase().split(/\s+/).filter(Boolean);
@@ -584,5 +594,13 @@ function initTwitchChat(twitchChan) {
         console.error("Twitch parsing error:", e);
       }
     }
+  };
+  twitchWs.onclose = () => {
+    console.warn("[Twitch] Connection closed. Reconnecting in 5 seconds...");
+    setTimeout(() => {
+      if (document.getElementById("twitch-channel")?.value) {
+        initTwitchChat(twitchChan);
+      }
+    }, 5000);
   };
 }
