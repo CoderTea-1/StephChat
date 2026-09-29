@@ -239,8 +239,7 @@ function appendMessage(
   kickBadges = [],
   badgeInfo = null,
 ) {
-
-  if (username && ignoredUsernames.includes(username.toLowerCase())) {
+  if (username && ignoredUsers.includes(username.toLowerCase())) {
     return;
   }
 
@@ -324,20 +323,19 @@ function appendMessage(
   if (!isScrollingEnabled) {
     chatContainer.scrollTop = chatContainer.scrollHeight;
   }
-
-  // Conditional message storage limit: cap at 50 messages only in OBS mode (?hideconfig=true)
-  const urlParams = new URLSearchParams(window.location.search);
-  if (urlParams.get("hideconfig") === "true") {
-    const MAX_OBS_MESSAGES = 50;
-    while (chatContainer.children.length > MAX_OBS_MESSAGES) {
-      chatContainer.removeChild(chatContainer.firstChild);
-    }
-  }
-
   // const MAX_MESSAGES = 20;
   // while (chatContainer.children.length > MAX_MESSAGES) {
   //   chatContainer.removeChild(chatContainer.firstChild);
   // }
+  const urlParams = new URLSearchParams(window.location.search);
+  const isObsBrowser = urlParams.get("hideconfig") === "true";
+
+  if (isObsBrowser) {
+    const MAX_OBS_MESSAGES = 10; // Adjust your preferred message limit here
+    while (chatContainer.children.length > MAX_OBS_MESSAGES) {
+      chatContainer.removeChild(chatContainer.firstChild);
+    }
+  }
 }
 
 /* Helper function to generate fallback styled text or images for user badges */
@@ -486,12 +484,15 @@ async function saveCurrentSettingsToCloud() {
 }
 
 /* Fetch saved settings from Redis and apply them to the UI on page load */
+/* Fetch saved settings from Redis and apply them to the UI on page load */
 async function loadSettingsOnStartup() {
   try {
     const response = await fetch("/api/settings");
     if (!response.ok) throw new Error("Failed to fetch settings from cloud");
 
-    const settings = await response.json();
+    const data = await response.json();
+    // Extract the settings object from the backend wrapper { settings, bannedWords, allowedWords }
+    const settings = data.settings || data;
     if (!settings || Object.keys(settings).length === 0) return;
 
     // 1. Populate text inputs if they exist in saved settings
@@ -512,14 +513,12 @@ async function loadSettingsOnStartup() {
       if (el) el.value = settings.ytApiKey;
     }
 
-    // 2. Populate color pickers and sliders
     // 2. Populate color pickers and sliders with proper CSS-matching fallbacks
     if (settings.userboxColor) {
       const el = document.getElementById("userbox-color-picker");
       if (el) el.value = settings.userboxColor;
     }
 
-    // Explicitly handle opacity fallback to match your CSS (0.9)
     const userboxOpacityVal = settings.userboxOpacity || "0.9";
     const userboxSlider = document.getElementById("userbox-opacity-slider");
     if (userboxSlider) {
@@ -550,7 +549,6 @@ async function loadSettingsOnStartup() {
       }
     });
 
-    // Trigger any color/styling update functions your app uses
     if (typeof updateUserBoxColor === "function") updateUserBoxColor();
     if (typeof updateMsgBoxColor === "function") updateMsgBoxColor();
     if (typeof updateTextColor === "function") updateTextColor();
@@ -653,6 +651,27 @@ window.addEventListener("DOMContentLoaded", () => {
     }, 1000); // Debounce by 500ms / 1s or save on change
   });
 
+  document
+    .getElementById("clear-announcement-btn")
+    ?.addEventListener("click", async () => {
+      // 1. Clear local input and UI element
+      const pinnedInput = document.getElementById("pinned-input");
+      if (pinnedInput) pinnedInput.value = "";
+      setPinnedAnnouncement("");
+
+      // 2. Clear from Cloud Redis via API
+      try {
+        await fetch("/api/settings", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ pinnedAnnouncement: "" }),
+        });
+        console.info("Announcement cleared from local and cloud.");
+      } catch (err) {
+        console.error("Failed to clear announcement from cloud:", err);
+      }
+    });
+
   // Force immediate save when clicking away or pressing enter
   pinnedInput?.addEventListener("blur", (e) => {
     clearTimeout(window.announcementSaveTimeout);
@@ -719,26 +738,24 @@ window.addEventListener("DOMContentLoaded", () => {
   if (urlParams.get("hideconfig") === "true") {
     document.getElementById("config-bar").style.display = "none";
 
-    let lastSettingsString = "";
+    let lastSettingsHash = "";
 
     async function pollCloudSettings() {
       try {
-        const response = await fetch("/api/settings");
-        if (response.ok) {
-          const settings = await response.json();
-          const currentString = JSON.stringify(settings);
+        const res = await fetch("/api/settings");
+        const data = await res.json();
+        const settings = data.settings || data;
 
-          if (lastSettingsString && currentString !== lastSettingsString) {
-            console.info(
-              "[OBS Sync] New settings detected from browser control panel. Refreshing chat...",
-            );
-            await loadSettingsOnStartup();
-            startChatWithRetry();
-          }
-          lastSettingsString = currentString;
+        // Create a quick stringified snapshot to check for modifications
+        const currentHash = JSON.stringify(settings);
+        if (currentHash === lastSettingsHash) {
+          return; // Skip processing if nothing changed in the cloud!
         }
+
+        lastSettingsHash = currentHash;
+        applySettings(settings); // Apply updated settings
       } catch (err) {
-        console.error("Error polling cloud settings:", err);
+        console.error("Failed to poll settings", err);
       }
     }
 
@@ -754,8 +771,8 @@ window.addEventListener("DOMContentLoaded", () => {
 
       startChatWithRetry();
 
-      // Poll cloud settings every 5 seconds for changes triggered by the control panel
-      setInterval(pollCloudSettings, 5000);
+      // Poll cloud settings every 10 minutes for changes triggered by the control panel
+      setInterval(pollCloudSettings, 600000);
     });
 
     // OBS Browser Source Memory & Performance Watchdog: 
@@ -931,3 +948,5 @@ async function sendDiscordLog(level, message, error = null) {
     console[level](message, error || "");
   }
 }
+}
+

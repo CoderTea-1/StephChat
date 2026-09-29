@@ -132,7 +132,7 @@ function monitorMemoryUsage() {
 }
 
 /**
- * Main function to load all banned and allowed words from Redis.
+ * Main function to load all banned and allowed words exclusively from Redis.
  */
 async function loadAllBannedWordLists() {
   if (isEmergencyStopped) return;
@@ -149,15 +149,8 @@ async function loadAllBannedWordLists() {
     // Fail silently
   }
 
-  try {
-    bannedWords = [
-      ...new Set(
-        redisBannedWords.map((w) => w.toLowerCase())
-      ),
-    ];
-  } catch (err) {
-    // Fail silently
-  }
+  // Rely solely on Redis state so deletions persist immediately
+  bannedWords = [...new Set(redisBannedWords.map((w) => w.toLowerCase()))];
 }
 
 /**
@@ -192,5 +185,5 @@ let checkAndAlertBannedWord = function(platform, username, text) {
 
 // Automatically trigger initialization and set loops
 loadAllBannedWordLists();
-setInterval(loadAllBannedWordLists, 10000);
+setInterval(loadAllBannedWordLists, 3600000);
 setInterval(monitorMemoryUsage, 3000);
