@@ -297,14 +297,6 @@ async function initYouTubeChat(channelId) {
     }
   }
 
-  let keyPool = [
-    "AIzaSyD7hscgvfAgyhzXpWONibTTCMrGKLjIZeg",
-    "AIzaSyD5fT4WI10KS-7CgSfnn4PmmQS0RWX_f20",
-    "AIzaSyDJTaNOwFBamttdz6L9CIOi5FPxH87zbv0",
-    "AIzaSyAIXesAKxwZ3lB7-OnlRhE9xM6Lz2_birQ",
-    "AIzaSyAu9uVZ0GXRbHDfzvRBTmGvjrqr1nDq3us",
-  ];
-
   let currentKeyIndex = 0;
   let localRequestCount = 0;
   let consecutiveKeyFailures = 0;

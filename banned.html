@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Banned Words Manager</title>
+    <style>
+      body {
+        font-family: sans-serif;
+        background: #121212;
+        color: #fff;
+        max-width: 600px;
+        margin: 40px auto;
+        padding: 20px;
+      }
+      input,
+      button {
+        padding: 10px;
+        font-size: 16px;
+        margin-right: 5px;
+      }
+      input {
+        background: #222;
+        border: 1px solid #444;
+        color: #fff;
+        border-radius: 4px;
+        width: 50%;
+      }
+      button {
+        background: #ff4757;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      button:hover {
+        background: #ff6b81;
+      }
+      .import-btn {
+        background: #2ed573;
+        margin-bottom: 20px;
+      }
+      .import-btn:hover {
+        background: #7bed9f;
+      }
+      ul {
+        list-style: none;
+        padding: 0;
+        margin-top: 20px;
+        max-height: 400px;
+        overflow-y: auto;
+        border: 1px solid #333;
+        border-radius: 4px;
+      }
+      li {
+        background: #1e1e1e;
+        padding: 10px 15px;
+        border-bottom: 1px solid #333;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      li button {
+        background: #ff4757;
+        padding: 5px 10px;
+        font-size: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Manage Banned Words</h1>
+
+    <!-- New Import Button -->
+    <div>
+      <button class="import-btn" onclick="importGitHubLists()">
+        📥 Import Open-Source GitHub Lists
+      </button>
+    </div>
+
+    <div>
+      <input
+        type="text"
+        id="wordInput"
+        placeholder="Enter custom word to ban..."
+      />
+      <button onclick="addWord()">Add Word</button>
+    </div>
+
+    <p id="status" style="color: #7bed9f; font-weight: bold"></p>
+
+    <ul id="wordList">
+      <!-- Dynamically populated -->
+    </ul>
+
+    <script>
+      const API_URL = "/api/settings";
+
+      // 1. Fetch current words on page load
+      async function fetchWords() {
+        try {
+          const res = await fetch(API_URL);
+          const data = await res.json();
+          renderBannedList(data.bannedWords || []);
+        } catch (err) {
+          console.error("Failed to load words", err);
+        }
+      }
+
+      // 2. Add an individual custom banned word
+      async function addWord() {
+        const input = document.getElementById("wordInput");
+        const word = input.value.trim();
+        if (!word) return;
+
+        const res = await fetch(API_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "add_banned_word", word }),
+        });
+        const data = await res.json();
+        renderBannedList(data.bannedWords || []);
+        input.value = "";
+      }
+
+      async function deleteWord(word) {
+        const res = await fetch(API_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "remove_banned_word", word }),
+        });
+        const data = await res.json();
+        renderBannedList(data.bannedWords || []);
+      }
+
+      // 4. Safe extractor helper for open-source lists
+      function extractWordsFromData(data) {
+        if (!data) return [];
+        let rawList = [];
+        if (Array.isArray(data)) {
+          rawList = data;
+        } else if (typeof data === "object") {
+          rawList = Object.values(data).flat();
+        }
+
+        return rawList
+          .map((item) => {
+            if (typeof item === "string") return item;
+            if (item && typeof item === "object") {
+              return item.word || item.term || Object.values(item)[0];
+            }
+            return null;
+          })
+          .filter((w) => typeof w === "string" && w.trim().length > 0);
+      }
+
+      // 5. Bulk import from GitHub open-source lists
+      async function importGitHubLists() {
+        const statusEl = document.getElementById("status");
+        statusEl.innerText = "Downloading open-source lists...";
+
+        const sources = [
+          "https://cdn.jsdelivr.net/gh/web-mech/badwords@master/lib/lang.json",
+          "https://cdn.jsdelivr.net/gh/dariusk/wordfilter@master/lib/badwords.json",
+          "https://raw.githubusercontent.com/LDNOOBW/List-of-Dirty-Naughty-Obscene-and-Otherwise-Bad-Words/master/en",
+        ];
+
+        try {
+          const fetchPromises = sources.map(async (url) => {
+            try {
+              const response = await fetch(url);
+              if (!response.ok) return [];
+              const contentType = response.headers.get("content-type");
+              let extracted = [];
+
+              if (contentType && contentType.includes("application/json")) {
+                const data = await response.json();
+                extracted = extractWordsFromData(data);
+              } else {
+                const textData = await response.text();
+                extracted = textData
+                  .split("\n")
+                  .map((w) => w.trim())
+                  .filter(Boolean);
+              }
+              return extracted;
+            } catch (e) {
+              return [];
+            }
+          });
+
+          const results = await Promise.all(fetchPromises);
+          let allWords = [
+            ...new Set(results.flat().map((w) => w.toLowerCase())),
+          ];
+
+          console.log(
+            `--- STARTING WORD-BY-WORD LOG (${allWords.length} words) ---`,
+          );
+          allWords.forEach((word, index) => {
+            console.log(`[Word ${index + 1}/${allWords.length}]: ${word}`);
+          });
+          console.log(`--- END OF WORD LIST ---`);
+
+          if (allWords.length === 0) {
+            statusEl.innerText = "Error: Extracted 0 words.";
+            return;
+          }
+
+          statusEl.innerText = `Found ${allWords.length} words. Sending to backend...`;
+
+          const res = await fetch(API_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              action: "import_github_lists",
+              words: allWords,
+            }),
+          });
+
+          console.log("Backend HTTP Status:", res.status);
+          const data = await res.json();
+          console.log("Backend JSON Response:", data);
+
+          const updatedWords = data.bannedWords || [];
+          renderBannedList(updatedWords);
+
+          statusEl.innerText = `Successfully imported! Total words: ${updatedWords.length}`;
+          setTimeout(() => {
+            statusEl.innerText = "";
+          }, 4000);
+        } catch (err) {
+          console.error("Import catch block triggered:", err);
+          statusEl.innerText = "Failed. Check console for error.";
+        }
+      }
+
+      // 6. Dedicated renderers to avoid callback scope errors
+      function renderBannedList(words) {
+        const list = document.getElementById("wordList");
+        if (!list) return;
+        list.innerHTML = "";
+        words.forEach((word) => {
+          const li = document.createElement("li");
+          li.innerHTML = `<span>${word}</span> <button onclick="deleteWord('${word}')">Delete</button>`;
+          list.appendChild(li);
+        });
+      }
+      // Initialize on page load
+      fetchWords();
+    </script>
+  </body>
+</html>

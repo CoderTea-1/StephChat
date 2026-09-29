@@ -6,6 +6,12 @@ let pusherInstance = null;
 const seenKickIds = new Set();
 let isScrollingEnabled = false;
 
+<<<<<<< Updated upstream
+=======
+// Add your list of ignored usernames (case-insensitive)
+const ignoredUsers = [];
+
+>>>>>>> Stashed changes
 // Configuration mapping chat trigger keywords to specific symbol animations
 const emoteTriggers = {
   "!prayer": ["🙏"],
@@ -225,6 +231,17 @@ function appendMessage(
   kickBadges = [],
   badgeInfo = null,
 ) {
+<<<<<<< Updated upstream
+=======
+  if (username && ignoredUsers.includes(username.toLowerCase())) {
+    return;
+  }
+
+  if (checkAndAlertBannedWord(platform, username, rawText)) {
+    return;
+  }
+
+>>>>>>> Stashed changes
   checkEmoteTrigger(rawText);
   const safeText = sanitizeChatMessage(rawText);
 
@@ -313,10 +330,22 @@ function appendMessage(
   if (!isScrollingEnabled) {
     chatContainer.scrollTop = chatContainer.scrollHeight;
   }
+<<<<<<< Updated upstream
   // const MAX_MESSAGES = 20;
   // while (chatContainer.children.length > MAX_MESSAGES) {
   //   chatContainer.removeChild(chatContainer.firstChild);
   // }
+=======
+  const urlParams = new URLSearchParams(window.location.search);
+  const isObsBrowser = urlParams.get("hideconfig") === "true";
+
+  if (isObsBrowser) {
+    const MAX_OBS_MESSAGES = 10; // Adjust your preferred message limit here
+    while (chatContainer.children.length > MAX_OBS_MESSAGES) {
+      chatContainer.removeChild(chatContainer.firstChild);
+    }
+  }
+>>>>>>> Stashed changes
 }
 
 /* Helper function to generate fallback styled text or images for user badges */
@@ -465,12 +494,15 @@ async function saveCurrentSettingsToCloud() {
 }
 
 /* Fetch saved settings from Redis and apply them to the UI on page load */
+/* Fetch saved settings from Redis and apply them to the UI on page load */
 async function loadSettingsOnStartup() {
   try {
     const response = await fetch("/api/settings");
     if (!response.ok) throw new Error("Failed to fetch settings from cloud");
 
-    const settings = await response.json();
+    const data = await response.json();
+    // Extract the settings object from the backend wrapper { settings, bannedWords, allowedWords }
+    const settings = data.settings || data;
     if (!settings || Object.keys(settings).length === 0) return;
 
     // 1. Populate text inputs if they exist in saved settings
@@ -491,14 +523,12 @@ async function loadSettingsOnStartup() {
       if (el) el.value = settings.ytApiKey;
     }
 
-    // 2. Populate color pickers and sliders
     // 2. Populate color pickers and sliders with proper CSS-matching fallbacks
     if (settings.userboxColor) {
       const el = document.getElementById("userbox-color-picker");
       if (el) el.value = settings.userboxColor;
     }
 
-    // Explicitly handle opacity fallback to match your CSS (0.9)
     const userboxOpacityVal = settings.userboxOpacity || "0.9";
     const userboxSlider = document.getElementById("userbox-opacity-slider");
     if (userboxSlider) {
@@ -529,7 +559,6 @@ async function loadSettingsOnStartup() {
       }
     });
 
-    // Trigger any color/styling update functions your app uses
     if (typeof updateUserBoxColor === "function") updateUserBoxColor();
     if (typeof updateMsgBoxColor === "function") updateMsgBoxColor();
     if (typeof updateTextColor === "function") updateTextColor();
@@ -631,6 +660,27 @@ window.addEventListener("DOMContentLoaded", () => {
     }, 1000); // Debounce by 500ms / 1s or save on change
   });
 
+  document
+    .getElementById("clear-announcement-btn")
+    ?.addEventListener("click", async () => {
+      // 1. Clear local input and UI element
+      const pinnedInput = document.getElementById("pinned-input");
+      if (pinnedInput) pinnedInput.value = "";
+      setPinnedAnnouncement("");
+
+      // 2. Clear from Cloud Redis via API
+      try {
+        await fetch("/api/settings", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ pinnedAnnouncement: "" }),
+        });
+        console.info("Announcement cleared from local and cloud.");
+      } catch (err) {
+        console.error("Failed to clear announcement from cloud:", err);
+      }
+    });
+
   // Force immediate save when clicking away or pressing enter
   pinnedInput?.addEventListener("blur", (e) => {
     clearTimeout(window.announcementSaveTimeout);
@@ -697,26 +747,24 @@ window.addEventListener("DOMContentLoaded", () => {
   if (urlParams.get("hideconfig") === "true") {
     document.getElementById("config-bar").style.display = "none";
 
-    let lastSettingsString = "";
+    let lastSettingsHash = "";
 
     async function pollCloudSettings() {
       try {
-        const response = await fetch("/api/settings");
-        if (response.ok) {
-          const settings = await response.json();
-          const currentString = JSON.stringify(settings);
+        const res = await fetch("/api/settings");
+        const data = await res.json();
+        const settings = data.settings || data;
 
-          if (lastSettingsString && currentString !== lastSettingsString) {
-            console.info(
-              "[OBS Sync] New settings detected from browser control panel. Refreshing chat...",
-            );
-            await loadSettingsOnStartup();
-            startChatWithRetry();
-          }
-          lastSettingsString = currentString;
+        // Create a quick stringified snapshot to check for modifications
+        const currentHash = JSON.stringify(settings);
+        if (currentHash === lastSettingsHash) {
+          return; // Skip processing if nothing changed in the cloud!
         }
+
+        lastSettingsHash = currentHash;
+        applySettings(settings); // Apply updated settings
       } catch (err) {
-        console.error("Error polling cloud settings:", err);
+        console.error("Failed to poll settings", err);
       }
     }
 
@@ -732,8 +780,8 @@ window.addEventListener("DOMContentLoaded", () => {
 
       startChatWithRetry();
 
-      // Poll cloud settings every 5 seconds for changes triggered by the control panel
-      setInterval(pollCloudSettings, 5000);
+      // Poll cloud settings every 10 minutes for changes triggered by the control panel
+      setInterval(pollCloudSettings, 600000);
     });
   }
 
@@ -832,4 +880,25 @@ function getPlatformBadge(source) {
     default:
       return `<span class="badge ${srcLower}">${source}</span>`;
   }
+<<<<<<< Updated upstream
 }
+=======
+}
+
+// Add to common.js or index.html script block
+function checkMemoryAndRefresh() {
+  if (performance && performance.memory) {
+    const usedHeapMB = performance.memory.usedJSHeapSize / (1024 * 1024);
+    // If heap memory exceeds 250MB in the OBS browser element, reload cleanly
+    if (usedHeapMB > 250) {
+      console.warn(
+        `[Auto-Refresh] Memory threshold reached (${usedHeapMB.toFixed(2)} MB). Refreshing page to prevent glitching.`,
+      );
+      window.location.reload();
+    }
+  }
+}
+
+// Check every 2 minutes while running in OBS
+setInterval(checkMemoryAndRefresh, 120000);
+>>>>>>> Stashed changes
