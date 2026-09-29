@@ -320,12 +320,15 @@ function renderTwitchBadges(badgesString, badgeInfoString, container) {
 // GIPHY API INTEGRATION FOR ALT-TEXT GIFS
 // ==========================================
 
-const GIPHY_API_KEY = "p7hmweKgq4lvHw2cxBUGSRc0vmJUWt0d";
+const GIPHY_API_KEY = "";
 
 /**
- * 2. Extracts core search terms from bracketed alt-text strings
- * (e.g., "[Everybody Loves Raymond Hello GIF by TV Land]" -> "Everybody Loves Raymond Hello")
+ * Extracts core terms from bracketed alt-text strings
  */
+// ==========================================
+// GIPHY API INTEGRATION FOR ALT-TEXT GIFS
+// ==========================================
+
 /**
  * Extracts core terms from bracketed alt-text strings
  */
@@ -362,7 +365,6 @@ function calculateTokenOverlapScore(
   const titleTokens = gifTitle.toLowerCase().split(/\s+/).filter(Boolean);
   if (searchTokens.length === 0 || titleTokens.length === 0) return 0;
 
-  // If an author was specified in the brackets, penalize/disqualify items that don't match
   if (targetAuthor && itemUser) {
     const matchesAuthor =
       itemUser.username?.toLowerCase().includes(targetAuthor.toLowerCase()) ||
@@ -377,18 +379,31 @@ function calculateTokenOverlapScore(
     }
   });
 
-  const score = matches / searchTokens.length;
-  //console.log( `[GiphyDebug] Token Overlap Number: ${score} (Search: "${searchTerm}" vs Title: "${gifTitle}")`, );
-  return score;
+  return matches / searchTokens.length;
 }
 
 /**
- * Uses the Giphy Translate endpoint for accurate phrase-to-GIF matching
+ * Uses the Giphy Translate/Search endpoint securely using the backend environment variable bridge
  */
 async function fetchAndRenderGiphyGif(altTextString, container) {
   const { searchTerm, author } = extractGiphySearchTerm(altTextString);
+  if (!searchTerm) {
+    container.appendChild(document.createTextNode(` ${altTextString}`));
+    return;
+  }
 
-  if (!searchTerm || !GIPHY_API_KEY || GIPHY_API_KEY === "YOUR_GIPHY_API_KEY") {
+  let giphyApiKey = "";
+  try {
+    const res = await fetch("/api/settings");
+    if (res.ok) {
+      const data = await res.json();
+      giphyApiKey = data.settings?.giphyApiKey || "";
+    }
+  } catch (err) {
+    // Fail silently
+  }
+
+  if (!giphyApiKey) {
     container.appendChild(document.createTextNode(` ${altTextString}`));
     return;
   }
@@ -406,44 +421,42 @@ async function fetchAndRenderGiphyGif(altTextString, container) {
   container.appendChild(img);
 
   try {
-    // Expanded inspection window to results to avoid missing relevant items
-    const requestUrl = `https://api.giphy.com/v1/gifs/search?api_key=${encodeURIComponent(GIPHY_API_KEY)}&q=${encodeURIComponent(searchTerm)}&rating=pg`;
-
+    const requestUrl = `https://api.giphy.com/v1/gifs/search?api_key=${encodeURIComponent(giphyApiKey)}&q=${encodeURIComponent(searchTerm)}&limit=5&rating=pg-13`;
     const response = await fetch(requestUrl);
-    if (!response.ok)
-      throw new Error(`Giphy API responded with status: ${response.status}`);
+    const json = await response.json();
 
-    const data = await response.json();
+    if (json.data && json.data.length > 0) {
+      let bestGif = json.data[0];
+      let bestScore = -1;
 
-    if (data.data && data.data.length > 0) {
-      let bestMatch = null;
-      let highestScore = -1;
-
-      // Evaluate each result using token overlap fuzzy matching
-      data.data.forEach((item) => {
+      json.data.forEach((item) => {
         const score = calculateTokenOverlapScore(
           searchTerm,
-          item.title,
+          item.title || "",
           author,
           item.user,
         );
-        if (score > highestScore) {
-          highestScore = score;
-          bestMatch = item;
+        if (score > bestScore) {
+          bestScore = score;
+          bestGif = item;
         }
       });
 
-      // Fallback to top result if no clear token overlap
-      let matchedGif = highestScore > 0 && bestMatch ? bestMatch : data.data[0];
-
-      const gifUrl = matchedGif.images.fixed_height.url;
-      img.src = gifUrl;
+      const imageUrl =
+        bestGif.images?.fixed_height?.url ||
+        bestGif.images?.original?.url ||
+        "";
+      if (imageUrl) {
+        img.src = imageUrl;
+      } else {
+        img.remove();
+        container.appendChild(document.createTextNode(` ${altTextString}`));
+      }
     } else {
       img.remove();
       container.appendChild(document.createTextNode(` ${altTextString}`));
     }
-  } catch (err) {
-    console.error("Giphy API error:", err);
+  } catch (e) {
     img.remove();
     container.appendChild(document.createTextNode(` ${altTextString}`));
   }

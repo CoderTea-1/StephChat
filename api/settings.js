@@ -7,9 +7,6 @@ const redis = new Redis({
     process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN || "",
 });
 
-<<<<<<< Updated upstream
-// Default settings matching your CSS values
-=======
 // In-Memory TTL Cache State
 let cachedSettings = null;
 let cachedBannedWords = null;
@@ -18,27 +15,29 @@ let cacheTimestamp = 0;
 const CACHE_TTL_MS = 1800000; // 30 minute cache duration
 
 // Default settings matching your CSS values (removed sensitive keys from editable Redis storage)
->>>>>>> Stashed changes
 const defaultSettings = {
   twitchChannel: "",
   kickChannel: "",
   ytHandle: "",
-  ytApiKey: "",
   pinnedAnnouncement: "",
-  userboxColor: "#af98dc",     // Matches the RGB from --header-bg
-  userboxOpacity: "0.9",      // Matches the alpha from --header-bg
-  msgboxColor: "#ff69b4",     // Matches the RGB from --message-bg
-  msgboxOpacity: "0.6",     // Matches the alpha from --message-bg
-  textColor: "#ffffff"
+  userboxColor: "#af98dc",
+  userboxOpacity: "0.9",
+  msgboxColor: "#ff69b4",
+  msgboxOpacity: "0.6",
+  textColor: "#ffffff",
 };
+
+// Helper function to invalidate cache on updates
+function invalidateCache() {
+  cachedSettings = null;
+  cachedBannedWords = null;
+  cachedAllowedWords = null;
+  cacheTimestamp = 0;
+}
 
 export default async function handler(req, res) {
   if (req.method === "GET") {
     try {
-<<<<<<< Updated upstream
-      const settings = (await redis.get("app_settings")) || defaultSettings;
-      return res.status(200).json(settings);
-=======
       const now = Date.now();
 
       // Return from in-memory cache if valid
@@ -74,7 +73,6 @@ export default async function handler(req, res) {
       cacheTimestamp = now;
 
       return res.status(200).json({ settings, bannedWords });
->>>>>>> Stashed changes
     } catch (error) {
       // Detailed inspection logging for debugging
       console.error("--- DEBUG API GET ERROR ---");
@@ -111,15 +109,17 @@ export default async function handler(req, res) {
     try {
       const body = req.body;
 
-<<<<<<< Updated upstream
       if (body.action === "clear") {
         await redis.del("app_settings");
-        return res.status(200).json({ success: true, settings: defaultSettings });
+        let freshSettings = { ...defaultSettings };
+        freshSettings.ytApiKey = process.env.YT_API_KEY || "";
+        freshSettings.giphyApiKey = process.env.GIPHY_API_KEY || "";
+        freshSettings.discordWebhookUrl = process.env.DISCORD_WEBHOOK_URL || "";
+        return res.status(200).json({ success: true, settings: freshSettings });
       }
 
       // Fetch current settings, merge new updates, and save back
       let currentSettings = (await redis.get("app_settings")) || { ...defaultSettings };
-=======
       // Prevent saving hardcoded/client-edited sensitive keys back to Redis
       if (body.ytApiKey) delete body.ytApiKey;
       if (body.giphyApiKey) delete body.giphyApiKey;
@@ -210,34 +210,25 @@ export default async function handler(req, res) {
           ...defaultSettings,
         };
       } catch (e) {}
->>>>>>> Stashed changes
 
       if (body.action === "clear_colors") {
-        // Reset colors/opacities directly back to CSS defaults instead of leaving them empty
         currentSettings.userboxColor = defaultSettings.userboxColor;
         currentSettings.userboxOpacity = defaultSettings.userboxOpacity;
         currentSettings.msgboxColor = defaultSettings.msgboxColor;
         currentSettings.msgboxOpacity = defaultSettings.msgboxOpacity;
         currentSettings.textColor = defaultSettings.textColor;
       } else if (body.action === "clear_emotes") {
-        // Completely remove any stored emote toggle keys from the saved object
         Object.keys(currentSettings).forEach((key) => {
           if (key.startsWith("emote_toggle_")) {
             delete currentSettings[key];
           }
         });
       } else {
-        // General merge of incoming settings payload on "Connect"
         currentSettings = { ...currentSettings, ...body };
       }
 
-<<<<<<< Updated upstream
-      await redis.set("app_settings", currentSettings);
-      return res.status(200).json({ success: true, settings: currentSettings });
-    } catch (error) {
       console.error(error);
       return res.status(500).json({ error: "Failed to save settings" });
-=======
       try {
         await redis.set("app_settings", currentSettings);
       } catch (e) {}
@@ -270,7 +261,6 @@ export default async function handler(req, res) {
         errorDebug: error.message,
         warning: "Handled save action via local fallback safely.",
       });
->>>>>>> Stashed changes
     }
   }
 

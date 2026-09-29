@@ -6,8 +6,6 @@ let pusherInstance = null;
 const seenKickIds = new Set();
 let isScrollingEnabled = false;
 
-<<<<<<< Updated upstream
-// Add your list of ignored usernames (case-insensitive)
 const ignoredUsers = [];
 
 // Avoids global scope redeclaration errors entirely by attaching to window
@@ -43,7 +41,6 @@ const emoteTriggers = {
   ],
   "!clip": [
     "https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_1131b76bea8142718a730799625cf0aa/default/dark/4.0",
-  ],
   ],
   "!church": ["⛪"],
   "!prime": ["👨🏻‍💼", "⛪"],
@@ -239,8 +236,7 @@ function appendMessage(
   kickBadges = [],
   badgeInfo = null,
 ) {
-
-  if (username && ignoredUsernames.includes(username.toLowerCase())) {
+  if (username && ignoredUsers.includes(username.toLowerCase())) {
     return;
   }
 
@@ -322,7 +318,6 @@ function appendMessage(
     chatContainer.scrollTop = chatContainer.scrollHeight;
   }
 
-  // Conditional message storage limit: cap at 50 messages only in OBS mode (?hideconfig=true)
   const urlParams = new URLSearchParams(window.location.search);
   const isObsBrowser = urlParams.get("hideconfig") === "true";
 
@@ -332,11 +327,6 @@ function appendMessage(
       chatContainer.removeChild(chatContainer.firstChild);
     }
   }
-
-  // const MAX_MESSAGES = 20;
-  // while (chatContainer.children.length > MAX_MESSAGES) {
-  //   chatContainer.removeChild(chatContainer.firstChild);
-  // }
 }
 
 /* Helper function to generate fallback styled text or images for user badges */
@@ -615,6 +605,7 @@ async function startChatWithRetry() {
 
 /* DOM Content Loaded Event Handlers */
 window.addEventListener("DOMContentLoaded", () => {
+  initializeEnvironment();
   initButterflies();
   initEmoteToggles();
   loadSettingsOnStartup();
