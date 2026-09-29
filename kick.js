@@ -77,7 +77,7 @@ function renderKickBadges(badgesArray, container) {
       container.appendChild(badgeElement);
     });
   } catch (e) {
-    console.error("Kick Badge Error:", e);
+    sendDiscordLog("error","Kick Badge Error:", e);
   }
 }
 
@@ -153,6 +153,6 @@ async function initKickChat(kickChan) {
       });
     }
   } catch (err) {
-    console.error("Kick Connection Error:", err);
+    sendDiscordLog("error","Kick Connection Error:", err);
   }
 }

@@ -7,11 +7,22 @@ const seenKickIds = new Set();
 let isScrollingEnabled = false;
 
 <<<<<<< Updated upstream
-=======
 // Add your list of ignored usernames (case-insensitive)
 const ignoredUsers = [];
 
->>>>>>> Stashed changes
+// Avoids global scope redeclaration errors entirely by attaching to window
+window.DISCORD_WEBHOOK_URL = window.DISCORD_WEBHOOK_URL || "";
+
+async function initializeEnvironment() {
+  try {
+    const res = await fetch("/api/settings");
+    if (res.ok) {
+      const data = await res.json();
+      window.DISCORD_WEBHOOK_URL = data.discordWebhookUrl || "";
+    }
+  } catch (err) {}
+}
+
 // Configuration mapping chat trigger keywords to specific symbol animations
 const emoteTriggers = {
   "!prayer": ["🙏"],
@@ -33,8 +44,6 @@ const emoteTriggers = {
   "!clip": [
     "https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_1131b76bea8142718a730799625cf0aa/default/dark/4.0",
   ],
-  "!marker": [
-    "https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_1131b76bea8142718a730799625cf0aa/default/dark/4.0",
   ],
   "!church": ["⛪"],
   "!prime": ["👨🏻‍💼", "⛪"],
@@ -87,7 +96,6 @@ function initEmoteToggles() {
     const checkbox = document.createElement("input");
     checkbox.type = "checkbox";
     checkbox.className = "emote-toggle";
-    // Match the exact ID format used in local storage / Redis keys
     checkbox.id = `emote_toggle_${keyword}`;
     checkbox.dataset.keyword = keyword;
 
@@ -140,7 +148,7 @@ function isImageUrl(str) {
   );
 }
 
-/* Generates a visual falling particle burst effect using a random mix of the provided emojis or images */
+/* Generates a visual falling particle burst effect using a random mix of emojis/images */
 function launchEmoteBurst(values) {
   const container = document.getElementById("burst-container");
   const burstCount = 25;
@@ -231,9 +239,8 @@ function appendMessage(
   kickBadges = [],
   badgeInfo = null,
 ) {
-<<<<<<< Updated upstream
-=======
-  if (username && ignoredUsers.includes(username.toLowerCase())) {
+
+  if (username && ignoredUsernames.includes(username.toLowerCase())) {
     return;
   }
 
@@ -241,7 +248,6 @@ function appendMessage(
     return;
   }
 
->>>>>>> Stashed changes
   checkEmoteTrigger(rawText);
   const safeText = sanitizeChatMessage(rawText);
 
@@ -267,25 +273,10 @@ function appendMessage(
     renderKickBadges(kickBadges, headerDiv);
   }
 
-  // Inside appendMessage, replace the random check with this logic:
   let isPrismana = false;
-
-  // Guaranteed Prismana for Masster_tea
   if (username && username.toLowerCase() === "masster_tea") {
     isPrismana = true;
   } else {
-    // Check if user is a VIP (e.g., via Twitch badges or platform metadata)
-    const isVip =
-      (twitchBadges &&
-        (twitchBadges.includes("vip") || twitchBadges.hasOwnProperty("vip"))) ||
-      (badgeInfo && badgeInfo.includes("vip"));
-
-    // Higher chance for VIPs (e.g., 20%), standard chance for others (e.g., 5%)
-    const prismanaChance = isVip ? .2 : 0.05;
-
-    if (Math.random() < prismanaChance) {
-      isPrismana = true;
-    }
   }
 
   if (isPrismana) {
@@ -330,12 +321,8 @@ function appendMessage(
   if (!isScrollingEnabled) {
     chatContainer.scrollTop = chatContainer.scrollHeight;
   }
-<<<<<<< Updated upstream
-  // const MAX_MESSAGES = 20;
-  // while (chatContainer.children.length > MAX_MESSAGES) {
-  //   chatContainer.removeChild(chatContainer.firstChild);
-  // }
-=======
+
+  // Conditional message storage limit: cap at 50 messages only in OBS mode (?hideconfig=true)
   const urlParams = new URLSearchParams(window.location.search);
   const isObsBrowser = urlParams.get("hideconfig") === "true";
 
@@ -345,7 +332,11 @@ function appendMessage(
       chatContainer.removeChild(chatContainer.firstChild);
     }
   }
->>>>>>> Stashed changes
+
+  // const MAX_MESSAGES = 20;
+  // while (chatContainer.children.length > MAX_MESSAGES) {
+  //   chatContainer.removeChild(chatContainer.firstChild);
+  // }
 }
 
 /* Helper function to generate fallback styled text or images for user badges */
@@ -453,7 +444,6 @@ function updateTextColor() {
 /* Saves current settings to the cloud backend */
 async function saveCurrentSettingsToCloud() {
   try {
-    // 1. Collect all current values from your configuration inputs
     const settingsData = {
       twitchChannel: document.getElementById("twitch-channel")?.value || "",
       kickChannel: document.getElementById("kick-channel")?.value || "",
@@ -471,7 +461,6 @@ async function saveCurrentSettingsToCloud() {
       timestamp: new Date().toISOString(),
     };
 
-    // Automatically grab all emote toggles using their class and ID
     document.querySelectorAll(".emote-toggle").forEach((cb) => {
       settingsData[cb.id] = cb.checked;
     });
@@ -489,7 +478,7 @@ async function saveCurrentSettingsToCloud() {
     const result = await response.json();
     console.info("Settings successfully saved to cloud:", result);
   } catch (err) {
-    console.error("Error saving settings to cloud:", err);
+    sendDiscordLog("error", "Error saving settings to cloud:", err);
   }
 }
 
@@ -505,7 +494,6 @@ async function loadSettingsOnStartup() {
     const settings = data.settings || data;
     if (!settings || Object.keys(settings).length === 0) return;
 
-    // 1. Populate text inputs if they exist in saved settings
     if (settings.twitchChannel) {
       const el = document.getElementById("twitch-channel");
       if (el) el.value = settings.twitchChannel;
@@ -523,6 +511,7 @@ async function loadSettingsOnStartup() {
       if (el) el.value = settings.ytApiKey;
     }
 
+    // 2. Populate color pickers and sliders
     // 2. Populate color pickers and sliders with proper CSS-matching fallbacks
     if (settings.userboxColor) {
       const el = document.getElementById("userbox-color-picker");
@@ -551,7 +540,6 @@ async function loadSettingsOnStartup() {
       if (el) el.value = settings.textColor;
     }
 
-    // 3. Populate emote wall checkboxes dynamically
     Object.keys(settings).forEach((key) => {
       const checkbox = document.getElementById(key);
       if (checkbox && checkbox.type === "checkbox") {
@@ -571,7 +559,7 @@ async function loadSettingsOnStartup() {
 
     console.info("Loaded and applied cloud settings on startup:", settings);
   } catch (err) {
-    console.error("Error loading settings on startup:", err);
+    sendDiscordLog("error", "Error loading settings on startup:", err);
   }
 }
 
@@ -588,9 +576,6 @@ async function startChat() {
 
   chatContainer.innerHTML = "";
 
-  setInterval(() => {
-    //console.clear();
-  }, 6000); // Clears every 1 minute
   if (twitchWs) {
     twitchWs.onclose = null;
     twitchWs.close();
@@ -603,34 +588,28 @@ async function startChat() {
 
   ytTimeouts.forEach((t) => clearTimeout(t));
   ytTimeouts = [];
-  if (twitchWs) twitchWs.close();
-  if (pusherInstance) pusherInstance.disconnect();
 
   if (twitchChan) initTwitchChat(twitchChan);
   if (kickChan) initKickChat(kickChan);
   if (ytHandle) initYouTubeChat(ytHandle);
 }
+
 let reconnectAttempts = 0;
 const MAX_RECONNECT_ATTEMPTS = 10;
 
 async function startChatWithRetry() {
   await startChat();
 
-  // Check if Twitch or YouTube failed to initialize and retry
   const twitchChan = document.getElementById("twitch-channel")?.value.trim();
-  const ytHandle = document.getElementById("yt-handle")?.value.trim();
-
   const needsTwitchRetry =
     twitchChan && (!twitchWs || twitchWs.readyState !== WebSocket.OPEN);
 
   if (needsTwitchRetry && reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
     reconnectAttempts++;
-    console.warn(
-      `[Auto-Reconnect] Retrying connection attempt ${reconnectAttempts}...`,
-    );
+    sendDiscordLog("warning", `[Auto-Reconnect] Retrying connection attempt ${reconnectAttempts}...`);
     setTimeout(startChatWithRetry, 3000);
   } else if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
-    console.error("[Auto-Reconnect] Max reconnection attempts reached.");
+    sendDiscordLog("error", "[Auto-Reconnect] Max reconnection attempts reached.");
   }
 }
 
@@ -646,9 +625,6 @@ window.addEventListener("DOMContentLoaded", () => {
   if (savedAnnouncement) {
     setPinnedAnnouncement(savedAnnouncement);
     if (pinnedInput) pinnedInput.value = savedAnnouncement;
-  } else if (!pinnedInput?.value || pinnedInput.value === "") {
-    // setPinnedAnnouncement("Your message here!");
-    // if (pinnedInput) pinnedInput.value = "Your message here!";
   }
 
   pinnedInput?.addEventListener("input", (e) => {
@@ -660,39 +636,15 @@ window.addEventListener("DOMContentLoaded", () => {
     }, 1000); // Debounce by 500ms / 1s or save on change
   });
 
-  document
-    .getElementById("clear-announcement-btn")
-    ?.addEventListener("click", async () => {
-      // 1. Clear local input and UI element
-      const pinnedInput = document.getElementById("pinned-input");
-      if (pinnedInput) pinnedInput.value = "";
-      setPinnedAnnouncement("");
-
-      // 2. Clear from Cloud Redis via API
-      try {
-        await fetch("/api/settings", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ pinnedAnnouncement: "" }),
-        });
-        console.info("Announcement cleared from local and cloud.");
-      } catch (err) {
-        console.error("Failed to clear announcement from cloud:", err);
-      }
-    });
-
-  // Force immediate save when clicking away or pressing enter
   pinnedInput?.addEventListener("blur", (e) => {
     clearTimeout(window.announcementSaveTimeout);
     setPinnedAnnouncement(e.target.value);
     saveCurrentSettingsToCloud();
   });
 
-  // Ensure button text matches initial 'OFF' state
   const scrollBtn = document.getElementById("toggle-scroll-btn");
   if (scrollBtn) scrollBtn.textContent = "Scrolling: OFF";
 
-  /* Manual toggle button click */
   scrollBtn?.addEventListener("click", () => {
     isScrollingEnabled = !isScrollingEnabled;
     scrollBtn.textContent = `Scrolling: ${isScrollingEnabled ? "ON" : "OFF"}`;
@@ -724,13 +676,10 @@ window.addEventListener("DOMContentLoaded", () => {
       chatContainer.scrollHeight - 5;
 
     if (isUserScrolling) {
-      // If user scrolls UP, set to ON
       if (currentScrollTop < lastScrollTop) {
         isScrollingEnabled = true;
         if (scrollBtn) scrollBtn.textContent = "Scrolling: ON";
-      }
-      // If user scrolls down to the BOTTOM, set to OFF (without locking overflow)
-      else if (isAtBottom) {
+      } else if (isAtBottom) {
         isScrollingEnabled = false;
         if (scrollBtn) scrollBtn.textContent = "Scrolling: OFF";
       }
@@ -751,24 +700,25 @@ window.addEventListener("DOMContentLoaded", () => {
 
     async function pollCloudSettings() {
       try {
-        const res = await fetch("/api/settings");
-        const data = await res.json();
-        const settings = data.settings || data;
+        const response = await fetch("/api/settings");
+        if (response.ok) {
+          const settings = await response.json();
+          const currentString = JSON.stringify(settings);
 
-        // Create a quick stringified snapshot to check for modifications
-        const currentHash = JSON.stringify(settings);
-        if (currentHash === lastSettingsHash) {
-          return; // Skip processing if nothing changed in the cloud!
+          if (lastSettingsString && currentString !== lastSettingsString) {
+            console.info(
+              "[OBS Sync] New settings detected from browser control panel. Refreshing chat...",
+            );
+            await loadSettingsOnStartup();
+            startChatWithRetry();
+          }
+          lastSettingsString = currentString;
         }
-
-        lastSettingsHash = currentHash;
-        applySettings(settings); // Apply updated settings
       } catch (err) {
-        console.error("Failed to poll settings", err);
+        console.error("Error polling cloud settings:", err);
       }
     }
 
-    // Initial load and start
     loadSettingsOnStartup().then(async () => {
       try {
         const res = await fetch("/api/settings");
@@ -780,12 +730,61 @@ window.addEventListener("DOMContentLoaded", () => {
 
       startChatWithRetry();
 
-      // Poll cloud settings every 10 minutes for changes triggered by the control panel
-      setInterval(pollCloudSettings, 600000);
+      // Poll cloud settings every 5 seconds for changes triggered by the control panel
+      setInterval(pollCloudSettings, 5000);
     });
+
+    // OBS Browser Source Memory & Performance Watchdog: 
+    // Automatically reloads the source if heap usage exceeds 300MB or at a periodic 2-hour interval to prevent lag/visual glitching.
+    setInterval(() => {
+      if (performance && performance.memory) {
+        const usedHeapMB = performance.memory.usedJSHeapSize / (1024 * 1024);
+        if (usedHeapMB > 300) {
+          console.warn(`[OBS Watchdog] High memory usage detected (${usedHeapMB.toFixed(2)} MB). Reloading browser source...`);
+          window.location.reload();
+        }
+      }
+    }, 15000);
+
+    // Periodic interval safeguard reload (every 2 hours / 7200000ms) to clear background memory fragmentation during long streams
+    setInterval(() => {
+      console.info("[OBS Watchdog] Scheduled periodic browser source refresh to prevent memory fatigue.");
+      window.location.reload();
+    }, 7200000);
   }
 
-  // Clear Color Settings Handler
+// Clear Pinned Announcement Handler
+  document
+    .getElementById("clearAnnouncementBtn")
+    ?.addEventListener("click", async () => {
+      // 1. Clear local storage
+      localStorage.removeItem("stream_pinned_announcement");
+
+      // 2. Clear input field and remove announcement bar from DOM/UI
+      const pinnedInput = document.getElementById("pinned-input");
+      if (pinnedInput) pinnedInput.value = "";
+      setPinnedAnnouncement("");
+
+      // 3. Send update to cloud backend (settings.js / Redis) to wipe pinnedAnnouncement
+      try {
+        const response = await fetch("/api/settings", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            pinnedAnnouncement: "",
+            action: "clear_announcement"
+          }),
+        });
+        if (response.ok) {
+          console.info("Cloud pinned announcement cleared successfully.");
+        } else {
+          console.error("Failed to clear cloud pinned announcement.");
+        }
+      } catch (err) {
+        console.error("Error communicating with cloud backend for announcement clearing:", err);
+      }
+    });
+
   document
     .getElementById("clearColorsBtn")
     ?.addEventListener("click", async () => {
@@ -799,27 +798,23 @@ window.addEventListener("DOMContentLoaded", () => {
         localStorage.removeItem("savedMsgBoxHex");
         localStorage.removeItem("savedMsgBoxOpacity");
         localStorage.removeItem("savedTextHex");
-        console.info("Local color settings cleared.");
       }
 
       if (choice === "cloud" || choice === "both") {
         try {
-          const res = await fetch("/api/settings", {
+          await fetch("/api/settings", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ action: "clear_colors" }),
           });
-          if (res.ok) console.info("Cloud color settings cleared.");
         } catch (err) {
-          console.error("Failed to clear cloud colors:", err);
+          sendDiscordLog("error", "Failed to clear cloud colors:", err);
         }
       }
 
-      // Optional: reload page to reflect changes
       window.location.reload();
     });
 
-  // Clear Emote Settings Handler
   document
     .getElementById("clearEmotesBtn")
     ?.addEventListener("click", async () => {
@@ -831,25 +826,24 @@ window.addEventListener("DOMContentLoaded", () => {
         Object.keys(emoteTriggers).forEach((keyword) => {
           localStorage.removeItem(`emote_toggle_${keyword}`);
         });
-        console.info("Local emote settings cleared.");
       }
 
       if (choice === "cloud" || choice === "both") {
         try {
-          const res = await fetch("/api/settings", {
+          await fetch("/api/settings", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ action: "clear_emotes" }),
           });
-          if (res.ok) console.info("Cloud emote settings cleared.");
         } catch (err) {
-          console.error("Failed to clear cloud emotes:", err);
+          sendDiscordLog("error", "Failed to clear cloud emotes:", err);
         }
       }
 
       window.location.reload();
     });
 });
+
 /* Updates and displays the pinned announcement bar */
 function setPinnedAnnouncement(text) {
   const bar = document.getElementById("pinned-announcement-bar");
@@ -880,25 +874,30 @@ function getPlatformBadge(source) {
     default:
       return `<span class="badge ${srcLower}">${source}</span>`;
   }
-<<<<<<< Updated upstream
-}
-=======
 }
 
-// Add to common.js or index.html script block
-function checkMemoryAndRefresh() {
-  if (performance && performance.memory) {
-    const usedHeapMB = performance.memory.usedJSHeapSize / (1024 * 1024);
-    // If heap memory exceeds 250MB in the OBS browser element, reload cleanly
-    if (usedHeapMB > 250) {
-      console.warn(
-        `[Auto-Refresh] Memory threshold reached (${usedHeapMB.toFixed(2)} MB). Refreshing page to prevent glitching.`,
-      );
-      window.location.reload();
+async function sendDiscordLog(level, message, error = null) {
+  const formattedMessage = `🛠️ **[${level.toUpperCase()}]** ${message} ${error ? `\n> \`${error.message || error}\`` : ""}`;
+  
+  // Fallback to console if webhook URL is missing
+  if (!DISCORD_WEBHOOK_URL) {
+    console[level](message, error || "");
+    return;
+  }
+
+  try {
+    const res = await fetch(DISCORD_WEBHOOK_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content: formattedMessage }),
+    });
+
+    if (!res.ok) {
+      // Fallback to console if Discord returns an error status
+      console[level](message, error || "");
     }
+  } catch (err) {
+    // Fallback to console on network/fetch failure
+    console[level](message, error || "");
   }
 }
-
-// Check every 2 minutes while running in OBS
-setInterval(checkMemoryAndRefresh, 120000);
->>>>>>> Stashed changes

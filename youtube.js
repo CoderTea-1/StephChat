@@ -351,16 +351,16 @@ async function initYouTubeChat(channelId) {
       const data = await response.json();
 
       if (data && typeof data.totalToday === "number") {
-        // console.log(
+        // sendDiscordLog("info",
         //   `[YouTube API Counter] Total requests used today across all devices: ${data.totalToday}`,
         // );
       } else {
-        // console.log(
+        // sendDiscordLog("info",
         //   `[YouTube API Counter] Requests today (Local fallback count): ${localRequestCount}`,
         // );
       }
     } catch (err) {
-      // console.log(
+      // sendDiscordLog("info",
       //   `[YouTube API Counter] Requests today (Local fallback count): ${localRequestCount} (Backend sync skipped/failed)`,
       // );
     }
@@ -370,7 +370,7 @@ async function initYouTubeChat(channelId) {
     if (consecutiveKeyFailures >= keyPool.length) {
       const msToMidnight = getTimeUntilMidnight();
       const hoursLeft = (msToMidnight / (1000 * 60 * 60)).toFixed(2);
-      console.error(
+      sendDiscordLog("error",
         `[YouTube Debug] All ${keyPool.length} API keys have failed. Stopping rotation and waiting until midnight (~${hoursLeft} hours) to resume.`,
       );
       triggerErrorFlash();
@@ -381,7 +381,7 @@ async function initYouTubeChat(channelId) {
 
     const ytKey = getCurrentKey();
     if (!ytKey) {
-      console.error(
+      sendDiscordLog("error",
         "[YouTube Debug] Fetch Error: No API keys provided in the input pool.",
       );
       triggerErrorFlash();
@@ -411,7 +411,7 @@ async function initYouTubeChat(channelId) {
 
         if (searchRes.status === 403 || searchRes.status === 429) {
           triggerErrorFlash();
-          console.warn(
+          sendDiscordLog("warning",
             `[YouTube Debug] Key index ${currentKeyIndex} failed search with status ${searchRes.status}. Rotating key.`,
           );
           rotateKey();
@@ -430,7 +430,7 @@ async function initYouTubeChat(channelId) {
 
           if (detailsRes.status === 403 || detailsRes.status === 429) {
             triggerErrorFlash();
-            console.warn(
+            sendDiscordLog("warning",
               `[YouTube Debug] Key index ${currentKeyIndex} failed video details with status ${detailsRes.status}. Rotating key.`,
             );
             rotateKey();
@@ -463,7 +463,7 @@ async function initYouTubeChat(channelId) {
 
       if (msgRes.status === 403 || msgRes.status === 429) {
         triggerErrorFlash();
-        console.warn(
+        sendDiscordLog("warning",
           `[YouTube Debug] Key index ${currentKeyIndex} hit quota/rate limit on messages (${msgRes.status}). Rotating key.`,
         );
         rotateKey();
@@ -510,7 +510,7 @@ async function initYouTubeChat(channelId) {
       const t = setTimeout(fetchYouTubeChat, nextInterval);
       ytTimeouts.push(t);
     } catch (err) {
-      console.error("[YouTube Debug] Fetch Error:", err);
+      sendDiscordLog("error","[YouTube Debug] Fetch Error:", err);
       triggerErrorFlash();
       rotateKey();
       const delay = Math.min(globalBackoff, GLOBAL_MAX_BACKOFF);

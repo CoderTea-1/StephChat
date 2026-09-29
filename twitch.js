@@ -312,7 +312,7 @@ function renderTwitchBadges(badgesString, badgeInfoString, container) {
       container.appendChild(badgeElement);
     });
   } catch (e) {
-    console.error("Twitch Badge Error:", e);
+    sendDiscordLog("error","Twitch Badge Error:", e);
   }
 }
 
@@ -453,22 +453,22 @@ async function fetchAndRenderGiphyGif(altTextString, container) {
  * 1. Modified renderTwitchEmotes to check if message text contains bracketed GIF descriptions
  */
 async function renderTwitchEmotes(text, emotesString, container) {
-  //console.log("[GiphyDebug] renderTwitchEmotes triggered.");
-  //console.log("[GiphyDebug] Raw message text passed:", text);
-  //console.log("[GiphyDebug] Raw emotesString passed:", emotesString);
+  //sendDiscordLog("info","[GiphyDebug] renderTwitchEmotes triggered.");
+  //sendDiscordLog("info","[GiphyDebug] Raw message text passed:", text);
+  //sendDiscordLog("info","[GiphyDebug] Raw emotesString passed:", emotesString);
 
   try {
     const trimmedText = text ? text.trim() : "";
-    //console.log("[GiphyDebug] Trimmed message text:", trimmedText);
+    //sendDiscordLog("info","[GiphyDebug] Trimmed message text:", trimmedText);
 
     // Check if the cleaned message is entirely a bracketed GIF alt-text string
     if (trimmedText.startsWith("[") && trimmedText.endsWith("]")) {
-      //console.log(  "[GiphyDebug] Condition met: Message matches bracketed alt-text format. Bypassing emote map logic to trigger Giphy lookup.",  );
+      //sendDiscordLog("info",  "[GiphyDebug] Condition met: Message matches bracketed alt-text format. Bypassing emote map logic to trigger Giphy lookup.",  );
       container.textContent = " ";
       await fetchAndRenderGiphyGif(trimmedText, container);
       return;
     } else {
-      //console.log("");
+      //sendDiscordLog("info","");
     }
 
     const emoteMap = [];
@@ -528,7 +528,7 @@ async function renderTwitchEmotes(text, emotesString, container) {
       container.appendChild(document.createTextNode(text.substring(lastIdx)));
     }
   } catch (e) {
-    console.error("[GiphyDebug] Twitch Emote / Alt-Text Rendering Error:", e);
+    sendDiscordLog("error","[GiphyDebug] Twitch Emote / Alt-Text Rendering Error:", e);
     container.textContent = ` ${text}`;
   }
 }
@@ -586,11 +586,11 @@ function initTwitchChat(twitchChan) {
           badgeInfo,
         );
       } catch (e) {
-        console.error("Twitch parsing error:", e);
+        sendDiscordLog(error, "Twitch parsing error:", e)
       }
     };
     twitchWs.onclose = () => {
-      console.warn("[Twitch] Connection closed. Reconnecting in 5 seconds...");
+      sendDiscordLog("warning","[Twitch] Connection closed. Reconnecting in 5 seconds...");
       setTimeout(() => {
         if (document.getElementById("twitch-channel")?.value) {
           initTwitchChat(twitchChan);
