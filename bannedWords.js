@@ -1,14 +1,21 @@
 let bannedWords = [];
 let allowedWords = [];
 let isEmergencyStopped = false;
+let DISCORD_WEBHOOK_URL = "";
 
-// Your Discord channel Webhook URL
-const DISCORD_WEBHOOK_URL =
-  "https://discord.com/api/webhooks/1551896986452623371/F1S7UfP9lUqM1z39lzUhPWFKV2mAH3qaTkicSFIU_dkjBIu3moKITjqo142-5rLjiWKN";
+// Fetch configuration from the backend .env bridge on load
+async function initializeEnvironment() {
+  try {
+    const res = await fetch("/api/settings");
+    if (res.ok) {
+      const data = await res.json();
+      DISCORD_WEBHOOK_URL = data.discordWebhookUrl || "";
+    }
+  } catch (err) {
+    // Fail silently
+  }
+}
 
-/**
- * Sends an alert notification to your personal Discord channel.
- */
 async function sendBannedWordAlert(platform, username, text) {
   if (!DISCORD_WEBHOOK_URL) return;
 

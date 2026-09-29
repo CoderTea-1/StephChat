@@ -101,7 +101,7 @@
           const data = await res.json();
           renderBannedList(data.bannedWords || []);
         } catch (err) {
-          console.error("Failed to load words", err);
+          sendDiscordLog("error", `Failed to load words ${err}`);
         }
       }
 
@@ -192,13 +192,21 @@
             ...new Set(results.flat().map((w) => w.toLowerCase())),
           ];
 
-          console.log(
+          sendDiscordLog(
+            "info",
             `--- STARTING WORD-BY-WORD LOG (${allWords.length} words) ---`,
           );
           allWords.forEach((word, index) => {
-            console.log(`[Word ${index + 1}/${allWords.length}]: ${word}`);
+            sendDiscordLog(
+              "info",
+              `[Word ${index + 1}/${allWords.length}]: ${word}`,
+            );
           });
-          console.log(`--- END OF WORD LIST ---`);
+          sendDiscordLog(
+              "info",
+              `--- END OF WORD LIST ---`,
+            );
+          
 
           if (allWords.length === 0) {
             statusEl.innerText = "Error: Extracted 0 words.";
@@ -216,9 +224,10 @@
             }),
           });
 
-          console.log("Backend HTTP Status:", res.status);
+          sendDiscordLog("info", `Backend HTTP Status: ${res.status}`);
+          `--- END OF WORD LIST ---`
           const data = await res.json();
-          console.log("Backend JSON Response:", data);
+          sendDiscordLog("info", `Backend JSON Response: ${data}`);
 
           const updatedWords = data.bannedWords || [];
           renderBannedList(updatedWords);
@@ -228,7 +237,7 @@
             statusEl.innerText = "";
           }, 4000);
         } catch (err) {
-          console.error("Import catch block triggered:", err);
+          sendDiscordLog("error", `Import catch block triggered: ${err}`);
           statusEl.innerText = "Failed. Check console for error.";
         }
       }

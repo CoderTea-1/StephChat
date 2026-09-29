@@ -6,12 +6,20 @@ let pusherInstance = null;
 const seenKickIds = new Set();
 let isScrollingEnabled = false;
 
-<<<<<<< Updated upstream
-=======
-// Add your list of ignored usernames (case-insensitive)
-const ignoredUsers = [];
+const ignoredUsernames = [""];
 
->>>>>>> Stashed changes
+let DISCORD_WEBHOOK_URL = "";
+
+async function initializeEnvironment() {
+  try {
+    const res = await fetch("/api/settings");
+    if (res.ok) {
+      const data = await res.json();
+      DISCORD_WEBHOOK_URL = data.discordWebhookUrl || "";
+    }
+  } catch (err) {}
+}
+
 // Configuration mapping chat trigger keywords to specific symbol animations
 const emoteTriggers = {
   "!prayer": ["🙏"],
@@ -231,8 +239,6 @@ function appendMessage(
   kickBadges = [],
   badgeInfo = null,
 ) {
-<<<<<<< Updated upstream
-=======
   if (username && ignoredUsers.includes(username.toLowerCase())) {
     return;
   }
@@ -241,7 +247,6 @@ function appendMessage(
     return;
   }
 
->>>>>>> Stashed changes
   checkEmoteTrigger(rawText);
   const safeText = sanitizeChatMessage(rawText);
 
@@ -274,18 +279,6 @@ function appendMessage(
   if (username && username.toLowerCase() === "masster_tea") {
     isPrismana = true;
   } else {
-    // Check if user is a VIP (e.g., via Twitch badges or platform metadata)
-    const isVip =
-      (twitchBadges &&
-        (twitchBadges.includes("vip") || twitchBadges.hasOwnProperty("vip"))) ||
-      (badgeInfo && badgeInfo.includes("vip"));
-
-    // Higher chance for VIPs (e.g., 20%), standard chance for others (e.g., 5%)
-    const prismanaChance = isVip ? .2 : 0.05;
-
-    if (Math.random() < prismanaChance) {
-      isPrismana = true;
-    }
   }
 
   if (isPrismana) {
@@ -330,12 +323,10 @@ function appendMessage(
   if (!isScrollingEnabled) {
     chatContainer.scrollTop = chatContainer.scrollHeight;
   }
-<<<<<<< Updated upstream
   // const MAX_MESSAGES = 20;
   // while (chatContainer.children.length > MAX_MESSAGES) {
   //   chatContainer.removeChild(chatContainer.firstChild);
   // }
-=======
   const urlParams = new URLSearchParams(window.location.search);
   const isObsBrowser = urlParams.get("hideconfig") === "true";
 
@@ -345,7 +336,6 @@ function appendMessage(
       chatContainer.removeChild(chatContainer.firstChild);
     }
   }
->>>>>>> Stashed changes
 }
 
 /* Helper function to generate fallback styled text or images for user badges */
@@ -636,6 +626,7 @@ async function startChatWithRetry() {
 
 /* DOM Content Loaded Event Handlers */
 window.addEventListener("DOMContentLoaded", () => {
+  initializeEnvironment();
   initButterflies();
   initEmoteToggles();
   loadSettingsOnStartup();
@@ -783,7 +774,57 @@ window.addEventListener("DOMContentLoaded", () => {
       // Poll cloud settings every 10 minutes for changes triggered by the control panel
       setInterval(pollCloudSettings, 600000);
     });
+
+    // OBS Browser Source Memory & Performance Watchdog: 
+    // Automatically reloads the source if heap usage exceeds 300MB or at a periodic 2-hour interval to prevent lag/visual glitching.
+    setInterval(() => {
+      if (performance && performance.memory) {
+        const usedHeapMB = performance.memory.usedJSHeapSize / (1024 * 1024);
+        if (usedHeapMB > 300) {
+          console.warn(`[OBS Watchdog] High memory usage detected (${usedHeapMB.toFixed(2)} MB). Reloading browser source...`);
+          window.location.reload();
+        }
+      }
+    }, 15000);
+
+    // Periodic interval safeguard reload (every 2 hours / 7200000ms) to clear background memory fragmentation during long streams
+    setInterval(() => {
+      console.info("[OBS Watchdog] Scheduled periodic browser source refresh to prevent memory fatigue.");
+      window.location.reload();
+    }, 7200000);
   }
+
+// Clear Pinned Announcement Handler
+  document
+    .getElementById("clearAnnouncementBtn")
+    ?.addEventListener("click", async () => {
+      // 1. Clear local storage
+      localStorage.removeItem("stream_pinned_announcement");
+
+      // 2. Clear input field and remove announcement bar from DOM/UI
+      const pinnedInput = document.getElementById("pinned-input");
+      if (pinnedInput) pinnedInput.value = "";
+      setPinnedAnnouncement("");
+
+      // 3. Send update to cloud backend (settings.js / Redis) to wipe pinnedAnnouncement
+      try {
+        const response = await fetch("/api/settings", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            pinnedAnnouncement: "",
+            action: "clear_announcement"
+          }),
+        });
+        if (response.ok) {
+          console.info("Cloud pinned announcement cleared successfully.");
+        } else {
+          console.error("Failed to clear cloud pinned announcement.");
+        }
+      } catch (err) {
+        console.error("Error communicating with cloud backend for announcement clearing:", err);
+      }
+    });
 
   // Clear Color Settings Handler
   document
@@ -880,25 +921,32 @@ function getPlatformBadge(source) {
     default:
       return `<span class="badge ${srcLower}">${source}</span>`;
   }
-<<<<<<< Updated upstream
-}
-=======
 }
 
-// Add to common.js or index.html script block
-function checkMemoryAndRefresh() {
-  if (performance && performance.memory) {
-    const usedHeapMB = performance.memory.usedJSHeapSize / (1024 * 1024);
-    // If heap memory exceeds 250MB in the OBS browser element, reload cleanly
-    if (usedHeapMB > 250) {
-      console.warn(
-        `[Auto-Refresh] Memory threshold reached (${usedHeapMB.toFixed(2)} MB). Refreshing page to prevent glitching.`,
-      );
-      window.location.reload();
+async function sendDiscordLog(level, message, error = null) {
+  const formattedMessage = `🛠️ **[${level.toUpperCase()}]** ${message} ${error ? `\n> \`${error.message || error}\`` : ""}`;
+  
+  // Fallback to console if webhook URL is missing
+  if (!DISCORD_WEBHOOK_URL) {
+    console[level](message, error || "");
+    return;
+  }
+
+  try {
+    const res = await fetch(DISCORD_WEBHOOK_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content: formattedMessage }),
+    });
+
+    if (!res.ok) {
+      // Fallback to console if Discord returns an error status
+      console[level](message, error || "");
     }
+  } catch (err) {
+    // Fallback to console on network/fetch failure
+    console[level](message, error || "");
   }
 }
+}
 
-// Check every 2 minutes while running in OBS
-setInterval(checkMemoryAndRefresh, 120000);
->>>>>>> Stashed changes
