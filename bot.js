@@ -20,7 +20,7 @@ async function initBotEnvironment() {
             if (directUrl) DISCORD_WEBHOOK_URL = directUrl;
         }
     } catch (err) {
-        console.error("Failed to fetch webhook URL from Redis:", err);
+        sendDiscordLog("error","Failed to fetch webhook URL from Redis:", err);
     }
 }
 initBotEnvironment();
@@ -174,3 +174,33 @@ client.on('message', (channel, tags, message, self) => {
         }
     }
 });
+
+
+async function sendDiscordLog(level, message, error = null) {
+  const formattedMessage = `🛠️ **[${level.toUpperCase()}]** ${message} ${error ? `\n> \`${error.message || error}\`` : ""}`;
+  
+  if (!DISCORD_WEBHOOK_URL) {
+    try {
+      const settings = await redis.get('settings');
+      if (settings) {
+        const parsed = typeof settings === 'string' ? JSON.parse(settings) : settings;
+        DISCORD_WEBHOOK_URL = parsed.discordWebhookUrl || parsed.discordWebhook || '';
+      }
+    } catch (e) {}
+  }
+  
+  if (!DISCORD_WEBHOOK_URL) {
+    console[level](message, error || "");
+    return;
+  }
+
+  try {
+    await fetch(DISCORD_WEBHOOK_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content: formattedMessage }),
+    });
+  } catch (err) {
+    console[level](message, error || "");
+  }
+}

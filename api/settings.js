@@ -56,7 +56,7 @@ export default async function handler(req, res) {
         settings = (await redis.get("app_settings")) || { ...defaultSettings };
         bannedWords = (await redis.get("banned_words")) || [];
       } catch (redisErr) {
-        console.warn(
+         sendDiscordLog("warning",
           "[Redis Connection/Auth Warning] Using default configurations:",
           redisErr.message,
         );
@@ -75,14 +75,14 @@ export default async function handler(req, res) {
       return res.status(200).json({ settings, bannedWords });
     } catch (error) {
       // Detailed inspection logging for debugging
-      console.error("--- DEBUG API GET ERROR ---");
-      console.error("Error Name:", error.name);
-      console.error("Error Message:", error.message);
-      console.error(
+       sendDiscordLog("error","--- DEBUG API GET ERROR ---");
+       sendDiscordLog("error","Error Name:", error.name);
+       sendDiscordLog("error","Error Message:", error.message);
+       sendDiscordLog("error",
         "URL Env Present:",
         !!process.env.UPSTASH_REDIS_REST_URL || !!process.env.KV_REST_API_URL,
       );
-      console.error(
+       sendDiscordLog("error",
         "Token Env Present:",
         !!process.env.UPSTASH_REDIS_REST_TOKEN ||
           !!process.env.KV_REST_API_TOKEN,
@@ -227,7 +227,7 @@ export default async function handler(req, res) {
         currentSettings = { ...currentSettings, ...body };
       }
 
-      console.error(error);
+       sendDiscordLog("error",error);
       return res.status(500).json({ error: "Failed to save settings" });
       try {
         await redis.set("app_settings", currentSettings);
@@ -241,10 +241,10 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true, settings: currentSettings });
     } catch (error) {
       // Detailed inspection logging for debugging
-      console.error("--- DEBUG API POST ERROR ---");
-      console.error("Error Name:", error.name);
-      console.error("Error Message:", error.message);
-      console.error("Request Body Action:", body?.action);
+       sendDiscordLog("error","--- DEBUG API POST ERROR ---");
+       sendDiscordLog("error","Error Name:", error.name);
+       sendDiscordLog("error","Error Message:", error.message);
+       sendDiscordLog("error","Request Body Action:", body?.action);
 
       if (process.env.DISCORD_WEBHOOK_URL) {
         await fetch(process.env.DISCORD_WEBHOOK_URL, {
@@ -268,4 +268,16 @@ export default async function handler(req, res) {
     .status(405)
     .setHeader("Allow", ["GET", "POST"])
     .end(`Method ${req.method} Not Allowed`);
+}
+
+async function sendDiscordLogBackend(level, message, error = null) {
+  if (!process.env.DISCORD_WEBHOOK_URL) return;
+  const formattedMessage = `🛠️ **[${level.toUpperCase()}]** ${message} ${error ? `\n> \`${error.message || error}\`` : ""}`;
+  try {
+    await fetch(process.env.DISCORD_WEBHOOK_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content: formattedMessage }),
+    });
+  } catch (e) {}
 }

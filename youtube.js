@@ -301,7 +301,7 @@ async function initYouTubeChat(channelId) {
   let localRequestCount = 0;
   let consecutiveKeyFailures = 0;
 
-  console.info(
+   sendDiscordLog("info",
     `YouTube Key Pool Initialized: Found ${keyPool.length} key(s). Keys array:`,
     keyPool,
   );
@@ -319,7 +319,7 @@ async function initYouTubeChat(channelId) {
     if (keyPool.length === 0) return;
     currentKeyIndex = (currentKeyIndex + 1) % keyPool.length;
     consecutiveKeyFailures++;
-    console.info(
+     sendDiscordLog("info",
       `[YouTube Debug] Rotated to next key index -> ${currentKeyIndex} (Masked: ${maskKey(getCurrentKey())})`,
     );
   }
@@ -341,7 +341,7 @@ async function initYouTubeChat(channelId) {
 
   async function trackApiRequest(endpointName) {
     localRequestCount++;
-    // console.info(`[YouTube Debug] API Pull executed (${endpointName}). Local request count: ${localRequestCount}`);
+    //  sendDiscordLog("info",`[YouTube Debug] API Pull executed (${endpointName}). Local request count: ${localRequestCount}`);
     try {
       const response = await fetch("/api/increment-counter", {
         method: "POST",
@@ -396,7 +396,7 @@ async function initYouTubeChat(channelId) {
     }
 
     try {
-      console.info(
+       sendDiscordLog("info",
         `[YouTube Debug] Trying key index ${currentKeyIndex} (${maskKey(ytKey)})`,
       );
     } catch (e) {}
@@ -445,7 +445,7 @@ async function initYouTubeChat(channelId) {
         }
 
         if (!activeLiveChatId) {
-          console.info(
+           sendDiscordLog("info",
             `Channel ID ${channelId} has no active live stream right now. Checking again in 5 minutes...`,
           );
           const OFFLINE_CHECK_INTERVAL = 300000;
@@ -504,7 +504,7 @@ async function initYouTubeChat(channelId) {
       const MIN_SAFE_INTERVAL = 15000;
       const nextInterval = Math.max(suggestedInterval, MIN_SAFE_INTERVAL);
 
-      console.info(
+       sendDiscordLog("info",
         `[YouTube Debug] Scheduling next poll in ${nextInterval}ms using pollingIntervalMillis + safeguards.`,
       );
       const t = setTimeout(fetchYouTubeChat, nextInterval);

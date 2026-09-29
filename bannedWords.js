@@ -1,7 +1,9 @@
 let bannedWords = [];
 let allowedWords = [];
 let isEmergencyStopped = false;
-let DISCORD_WEBHOOK_URL = "";
+
+// Avoids global scope redeclaration errors entirely by attaching to window
+window.DISCORD_WEBHOOK_URL = window.DISCORD_WEBHOOK_URL || "";
 
 // Fetch configuration from the backend .env bridge on load
 async function initializeEnvironment() {
@@ -9,18 +11,20 @@ async function initializeEnvironment() {
     const res = await fetch("/api/settings");
     if (res.ok) {
       const data = await res.json();
-      DISCORD_WEBHOOK_URL = data.discordWebhookUrl || "";
+      window.DISCORD_WEBHOOK_URL = data.discordWebhookUrl || "";
+    } else {
+      await sendDiscordLog("warn", `Environment initialization received status ${res.status}`);
     }
   } catch (err) {
-    // Fail silently
+    await sendDiscordLog("error", "Failed to initialize environment settings from API", err);
   }
 }
 
 async function sendBannedWordAlert(platform, username, text) {
-  if (!DISCORD_WEBHOOK_URL) return;
+  if (!window.DISCORD_WEBHOOK_URL) return;
 
   try {
-    await fetch(DISCORD_WEBHOOK_URL, {
+    const res = await fetch(window.DISCORD_WEBHOOK_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -29,8 +33,13 @@ async function sendBannedWordAlert(platform, username, text) {
         content: `🚨 **Banned Word Blocked!**\n> **Platform:** ${platform || "Unknown"}\n> **User:** ${username || "Unknown"}\n> **Message:** "${text}"`,
       }),
     });
+
+    if (!res.ok) {
+      console.error(`Failed to send banned word alert: Discord API returned status ${res.status}`);
+    }
   } catch (err) {
-    // Fail silently
+    // Fall back to console log since the webhook itself failed
+    console.error("Failed to send banned word alert to Discord:", err);
   }
 }
 
@@ -67,8 +76,8 @@ function triggerEmergencyStop(currentMemoryMB) {
   };
 
   // 5. Send emergency notification to Discord
-  if (DISCORD_WEBHOOK_URL) {
-    fetch(DISCORD_WEBHOOK_URL, {
+  if (window.DISCORD_WEBHOOK_URL) {
+    fetch(window.DISCORD_WEBHOOK_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -132,7 +141,7 @@ function monitorMemoryUsage() {
 }
 
 /**
- * Main function to load all banned and allowed words exclusively from Redis.
+ * Main function to load all banned and allowed words from Redis.
  */
 async function loadAllBannedWordLists() {
   if (isEmergencyStopped) return;
@@ -144,13 +153,23 @@ async function loadAllBannedWordLists() {
       const data = await res.json();
       redisBannedWords = data.bannedWords || [];
       allowedWords = data.allowedWords || [];
+    } else {
+      await sendDiscordLog("warn", `Failed to load banned words list: API returned status ${res.status}`);
     }
   } catch (err) {
-    // Fail silently
+    await sendDiscordLog("error", "Failed to fetch banned words list from API", err);
   }
 
-  // Rely solely on Redis state so deletions persist immediately
-  bannedWords = [...new Set(redisBannedWords.map((w) => w.toLowerCase()))];
+  try {
+    bannedWords = [
+      ...new Set(
+        redisBannedWords.map((w) => w.toLowerCase())
+      ),
+    ];
+  } catch (err) {
+    // Replaced silent failure with Discord logging
+    await sendDiscordLog("error", "Failed to process and format banned words array", err);
+  }
 }
 
 /**

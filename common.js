@@ -17,8 +17,14 @@ async function initializeEnvironment() {
     if (res.ok) {
       const data = await res.json();
       window.DISCORD_WEBHOOK_URL = data.discordWebhookUrl || "";
+    } else {
+      // Optional: Handle non-200 responses as well
+      await sendDiscordLog("error", `Failed to fetch settings: API returned status ${res.status}`);
     }
-  } catch (err) {}
+  } catch (err) {
+    // Put this here:
+    await sendDiscordLog("error", "Failed to initialize environment settings from API", err);
+  }
 }
 
 // Configuration mapping chat trigger keywords to specific symbol animations
@@ -466,7 +472,7 @@ async function saveCurrentSettingsToCloud() {
     }
 
     const result = await response.json();
-    console.info("Settings successfully saved to cloud:", result);
+     sendDiscordLog("info","Settings successfully saved to cloud:", result);
   } catch (err) {
     sendDiscordLog("error", "Error saving settings to cloud:", err);
   }
@@ -547,7 +553,7 @@ async function loadSettingsOnStartup() {
       setPinnedAnnouncement(settings.pinnedAnnouncement);
     }
 
-    console.info("Loaded and applied cloud settings on startup:", settings);
+     sendDiscordLog("info","Loaded and applied cloud settings on startup:", settings);
   } catch (err) {
     sendDiscordLog("error", "Error loading settings on startup:", err);
   }
@@ -697,7 +703,7 @@ window.addEventListener("DOMContentLoaded", () => {
           const currentString = JSON.stringify(settings);
 
           if (lastSettingsString && currentString !== lastSettingsString) {
-            console.info(
+             sendDiscordLog("info",
               "[OBS Sync] New settings detected from browser control panel. Refreshing chat...",
             );
             await loadSettingsOnStartup();
@@ -706,7 +712,7 @@ window.addEventListener("DOMContentLoaded", () => {
           lastSettingsString = currentString;
         }
       } catch (err) {
-        console.error("Error polling cloud settings:", err);
+         sendDiscordLog("error","Error polling cloud settings:", err);
       }
     }
 
@@ -731,7 +737,7 @@ window.addEventListener("DOMContentLoaded", () => {
       if (performance && performance.memory) {
         const usedHeapMB = performance.memory.usedJSHeapSize / (1024 * 1024);
         if (usedHeapMB > 300) {
-          console.warn(`[OBS Watchdog] High memory usage detected (${usedHeapMB.toFixed(2)} MB). Reloading browser source...`);
+           sendDiscordLog("warning",`[OBS Watchdog] High memory usage detected (${usedHeapMB.toFixed(2)} MB). Reloading browser source...`);
           window.location.reload();
         }
       }
@@ -739,7 +745,7 @@ window.addEventListener("DOMContentLoaded", () => {
 
     // Periodic interval safeguard reload (every 2 hours / 7200000ms) to clear background memory fragmentation during long streams
     setInterval(() => {
-      console.info("[OBS Watchdog] Scheduled periodic browser source refresh to prevent memory fatigue.");
+       sendDiscordLog("info","[OBS Watchdog] Scheduled periodic browser source refresh to prevent memory fatigue.");
       window.location.reload();
     }, 7200000);
   }
@@ -767,12 +773,12 @@ window.addEventListener("DOMContentLoaded", () => {
           }),
         });
         if (response.ok) {
-          console.info("Cloud pinned announcement cleared successfully.");
+           sendDiscordLog("info","Cloud pinned announcement cleared successfully.");
         } else {
-          console.error("Failed to clear cloud pinned announcement.");
+           sendDiscordLog("error","Failed to clear cloud pinned announcement.");
         }
       } catch (err) {
-        console.error("Error communicating with cloud backend for announcement clearing:", err);
+         sendDiscordLog("error","Error communicating with cloud backend for announcement clearing:", err);
       }
     });
 

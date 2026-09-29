@@ -312,7 +312,7 @@ function renderTwitchBadges(badgesString, badgeInfoString, container) {
       container.appendChild(badgeElement);
     });
   } catch (e) {
-    sendDiscordLog("error","Twitch Badge Error:", e);
+    sendDiscordLog("error", "Twitch Badge Error:", e);
   }
 }
 
@@ -398,9 +398,19 @@ async function fetchAndRenderGiphyGif(altTextString, container) {
     if (res.ok) {
       const data = await res.json();
       giphyApiKey = data.settings?.giphyApiKey || "";
+    } else {
+      await sendDiscordLog(
+        "warn",
+        `Failed to fetch Giphy settings: API returned status ${res.status}`,
+      );
     }
   } catch (err) {
-    // Fail silently
+    // Replaced silent failure with Discord logging
+    await sendDiscordLog(
+      "error",
+      "Failed to fetch Giphy API key from settings",
+      err,
+    );
   }
 
   if (!giphyApiKey) {
@@ -541,7 +551,11 @@ async function renderTwitchEmotes(text, emotesString, container) {
       container.appendChild(document.createTextNode(text.substring(lastIdx)));
     }
   } catch (e) {
-    sendDiscordLog("error","[GiphyDebug] Twitch Emote / Alt-Text Rendering Error:", e);
+    sendDiscordLog(
+      "error",
+      "[GiphyDebug] Twitch Emote / Alt-Text Rendering Error:",
+      e,
+    );
     container.textContent = ` ${text}`;
   }
 }
@@ -599,11 +613,14 @@ function initTwitchChat(twitchChan) {
           badgeInfo,
         );
       } catch (e) {
-        sendDiscordLog(error, "Twitch parsing error:", e)
+        sendDiscordLog(error, "Twitch parsing error:", e);
       }
-    };
+    }
     twitchWs.onclose = () => {
-      sendDiscordLog("warning","[Twitch] Connection closed. Reconnecting in 5 seconds...");
+      sendDiscordLog(
+        "warning",
+        "[Twitch] Connection closed. Reconnecting in 5 seconds...",
+      );
       setTimeout(() => {
         if (document.getElementById("twitch-channel")?.value) {
           initTwitchChat(twitchChan);
