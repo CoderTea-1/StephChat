@@ -16,14 +16,22 @@ async function initializeEnvironment() {
     const res = await fetch("/api/settings");
     if (res.ok) {
       const data = await res.json();
-      window.DISCORD_WEBHOOK_URL = data.discordWebhookUrl || "";
+      window.DISCORD_WEBHOOK_URL =
+        data.discordWebhookUrl || data.settings?.discordWebhookUrl || "";
     } else {
       // Optional: Handle non-200 responses as well
-      await sendDiscordLog("error", `Failed to fetch settings: API returned status ${res.status}`);
+      await sendDiscordLog(
+        "error",
+        `Failed to fetch settings: API returned status ${res.status}`,
+      );
     }
   } catch (err) {
     // Put this here:
-    await sendDiscordLog("error", "Failed to initialize environment settings from API", err);
+    await sendDiscordLog(
+      "error",
+      "Failed to initialize environment settings from API",
+      err,
+    );
   }
 }
 
@@ -281,8 +289,79 @@ function appendMessage(
   } else {
   }
 
+  const modNames = [
+    "aviva_zee",
+    "bobcat452",
+    "caffeinatedskwerl",
+    "cloudbot",
+    "dee_monkeey",
+    "dissonanceprime",
+    "ferric_hehrtool",
+    "forgebiblebot",
+    "gfunkrailroad",
+    "hey_its_jean",
+    "howdymanhall",
+    "lionwarrior79",
+    "nightbot",
+    "officedemon",
+    "opacoley",
+    "phoenragon",
+    "remnantrd",
+    "rogue_steve6",
+    "rusher_gamesyt",
+    "ryvur",
+    "sery_bot",
+    "streamelements",
+    "streamlabs",
+    "tangiabot",
+    "theondisciple",
+    "unhinged_mrs_krisusten",
+    "zacchaeus12_2",
+  ];
+  let isMod = false;
+  const cleanUsername = username ? username.trim().toLowerCase() : "";
+  if (cleanUsername && modNames.includes(cleanUsername)) {
+    isMod = true;
+  }
+
+  if (!isMod && platform === "Twitch" && twitchBadges) {
+    if (
+      typeof twitchBadges === "string" &&
+      twitchBadges.toLowerCase().includes("moderator")
+    ) {
+      isMod = true;
+    }
+  }
+  if (!isMod && platform === "Kick" && Array.isArray(kickBadges)) {
+    if (
+      kickBadges.some(
+        (b) => typeof b === "string" && b.toLowerCase().includes("mod"),
+      )
+    ) {
+      isMod = true;
+    }
+  }
+  if (username && modNames.includes(username.toLowerCase())) {
+    isMod = true;
+  } else {
+  }
+
+  let isBroadcaster = false;
+  if (username && username.toLowerCase() === "sassinatorsteph") {
+    isBroadcaster = true;
+  } else {
+  }
+
   if (isPrismana) {
     messageDiv.classList.add("prismana-rare");
+  }
+
+  if (isMod) {
+    messageDiv.classList.add("moderator");
+  }
+
+  if (isBroadcaster) {
+    messageDiv.classList.add("broadcaster");
   }
 
   const userSpan = document.createElement("span");
@@ -320,7 +399,8 @@ function appendMessage(
 
   chatContainer.appendChild(messageDiv);
 
-  if (!isScrollingEnabled) {
+  // Auto-scroll only if auto-scroll is ON (isScrollingEnabled is true)
+  if (isScrollingEnabled) {
     chatContainer.scrollTop = chatContainer.scrollHeight;
   }
 
@@ -444,7 +524,7 @@ async function saveCurrentSettingsToCloud() {
       twitchChannel: document.getElementById("twitch-channel")?.value || "",
       kickChannel: document.getElementById("kick-channel")?.value || "",
       ytHandle: document.getElementById("yt-handle")?.value || "",
-      ytApiKey: document.getElementById("yt-api-key")?.value || "",
+      ytApiKey: window.YOUTUBE_API_KEY || "", // Preserve from global state if needed
       pinnedAnnouncement: document.getElementById("pinned-input")?.value || "",
       userboxColor:
         document.getElementById("userbox-color-picker")?.value || "",
@@ -472,13 +552,12 @@ async function saveCurrentSettingsToCloud() {
     }
 
     const result = await response.json();
-     sendDiscordLog("info","Settings successfully saved to cloud:", result);
+    sendDiscordLog("info", "Settings successfully saved to cloud:", result);
   } catch (err) {
     sendDiscordLog("error", "Error saving settings to cloud:", err);
   }
 }
 
-/* Fetch saved settings from Redis and apply them to the UI on page load */
 /* Fetch saved settings from Redis and apply them to the UI on page load */
 async function loadSettingsOnStartup() {
   try {
@@ -502,12 +581,23 @@ async function loadSettingsOnStartup() {
       const el = document.getElementById("yt-handle");
       if (el) el.value = settings.ytHandle;
     }
-    if (settings.ytApiKey) {
+    if (settings.ytApiKey || settings.ytApiKeys) {
+      const rawKeys = settings.ytApiKeys || settings.ytApiKey;
+
+      // Converts comma-separated string or array from Vercel env into the array youtube.js expects
+      window.YOUTUBE_API_KEYS = Array.isArray(rawKeys)
+        ? rawKeys
+        : rawKeys
+            .split(",")
+            .map((k) => k.trim())
+            .filter(Boolean);
+
+      window.YOUTUBE_API_KEY = window.YOUTUBE_API_KEYS[0] || "";
+
       const el = document.getElementById("yt-api-key");
-      if (el) el.value = settings.ytApiKey;
+      if (el) el.value = window.YOUTUBE_API_KEY;
     }
 
-    // 2. Populate color pickers and sliders
     // 2. Populate color pickers and sliders with proper CSS-matching fallbacks
     if (settings.userboxColor) {
       const el = document.getElementById("userbox-color-picker");
@@ -553,7 +643,11 @@ async function loadSettingsOnStartup() {
       setPinnedAnnouncement(settings.pinnedAnnouncement);
     }
 
-     sendDiscordLog("info","Loaded and applied cloud settings on startup:", settings);
+    sendDiscordLog(
+      "info",
+      "Loaded and applied cloud settings on startup:",
+      settings,
+    );
   } catch (err) {
     sendDiscordLog("error", "Error loading settings on startup:", err);
   }
@@ -564,11 +658,9 @@ async function startChat() {
   const twitchChan = document.getElementById("twitch-channel").value.trim();
   const kickChan = document.getElementById("kick-channel").value.trim();
   const ytHandle = document.getElementById("yt-handle").value.trim();
-  const ytKeyInput = document.getElementById("yt-api-key").value.trim();
   if (twitchChan) localStorage.setItem("stream_twitch_channel", twitchChan);
   if (kickChan) localStorage.setItem("stream_kick_channel", kickChan);
   if (ytHandle) localStorage.setItem("stream_yt_handle", ytHandle);
-  if (ytKeyInput) localStorage.setItem("stream_yt_key", ytKeyInput);
 
   chatContainer.innerHTML = "";
 
@@ -602,19 +694,25 @@ async function startChatWithRetry() {
 
   if (needsTwitchRetry && reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
     reconnectAttempts++;
-    sendDiscordLog("warning", `[Auto-Reconnect] Retrying connection attempt ${reconnectAttempts}...`);
+    sendDiscordLog(
+      "warning",
+      `[Auto-Reconnect] Retrying connection attempt ${reconnectAttempts}...`,
+    );
     setTimeout(startChatWithRetry, 3000);
   } else if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
-    sendDiscordLog("error", "[Auto-Reconnect] Max reconnection attempts reached.");
+    sendDiscordLog(
+      "error",
+      "[Auto-Reconnect] Max reconnection attempts reached.",
+    );
   }
 }
 
 /* DOM Content Loaded Event Handlers */
-window.addEventListener("DOMContentLoaded", () => {
+window.addEventListener("DOMContentLoaded", async () => {
   initializeEnvironment();
   initButterflies();
   initEmoteToggles();
-  loadSettingsOnStartup();
+  await loadSettingsOnStartup();
 
   const savedAnnouncement = localStorage.getItem("stream_pinned_announcement");
   const pinnedInput = document.getElementById("pinned-input");
@@ -639,61 +737,44 @@ window.addEventListener("DOMContentLoaded", () => {
     saveCurrentSettingsToCloud();
   });
 
+  // Setup Auto-Scroll state and toggle button
+  isScrollingEnabled = true; // Default to ON
   const scrollBtn = document.getElementById("toggle-scroll-btn");
-  if (scrollBtn) scrollBtn.textContent = "Scrolling: OFF";
+  if (scrollBtn) scrollBtn.textContent = "Auto-Scroll: ON";
 
   scrollBtn?.addEventListener("click", () => {
     isScrollingEnabled = !isScrollingEnabled;
-    scrollBtn.textContent = `Scrolling: ${isScrollingEnabled ? "ON" : "OFF"}`;
+    scrollBtn.textContent = `Auto-Scroll: ${isScrollingEnabled ? "ON" : "OFF"}`;
 
     if (isScrollingEnabled) {
       chatContainer.scrollTop = chatContainer.scrollHeight;
     }
   });
 
-  let lastScrollTop = chatContainer.scrollTop;
-  let isUserScrolling = false;
-
-  chatContainer.addEventListener("pointerdown", () => {
-    isUserScrolling = true;
-  });
-
-  chatContainer.addEventListener(
-    "wheel",
-    () => {
-      isUserScrolling = true;
-    },
-    { passive: true },
-  );
-
+  // Reliable scroll listener: updates auto-scroll toggle based on whether user is at bottom or scrolled up
   chatContainer.addEventListener("scroll", () => {
     const currentScrollTop = chatContainer.scrollTop;
-    const isAtBottom =
-      currentScrollTop + chatContainer.clientHeight >=
-      chatContainer.scrollHeight - 5;
+    const maxScrollTop = chatContainer.scrollHeight - chatContainer.clientHeight;
+    
+    // Consider "at the bottom" if within 10 pixels of the end
+    const isAtBottom = currentScrollTop >= maxScrollTop - 10;
 
-    if (isUserScrolling) {
-      if (currentScrollTop < lastScrollTop) {
-        isScrollingEnabled = true;
-        if (scrollBtn) scrollBtn.textContent = "Scrolling: ON";
-      } else if (isAtBottom) {
-        isScrollingEnabled = false;
-        if (scrollBtn) scrollBtn.textContent = "Scrolling: OFF";
-      }
+    if (isAtBottom) {
+      // Reached the bottom: automatically resume auto-scrolling
+      isScrollingEnabled = true;
+      if (scrollBtn) scrollBtn.textContent = "Auto-Scroll: ON";
+    } else {
+      // Scrolled up: hold position / pause auto-scrolling
+      isScrollingEnabled = false;
+      if (scrollBtn) scrollBtn.textContent = "Auto-Scroll: OFF";
     }
-
-    lastScrollTop = currentScrollTop;
-  });
-
-  chatContainer.addEventListener("pointerup", () => {
-    isUserScrolling = false;
   });
 
   const urlParams = new URLSearchParams(window.location.search);
   if (urlParams.get("hideconfig") === "true") {
     document.getElementById("config-bar").style.display = "none";
 
-    let lastSettingsHash = "";
+    let lastSettingsString = "";
 
     async function pollCloudSettings() {
       try {
@@ -703,7 +784,8 @@ window.addEventListener("DOMContentLoaded", () => {
           const currentString = JSON.stringify(settings);
 
           if (lastSettingsString && currentString !== lastSettingsString) {
-             sendDiscordLog("info",
+            sendDiscordLog(
+              "info",
               "[OBS Sync] New settings detected from browser control panel. Refreshing chat...",
             );
             await loadSettingsOnStartup();
@@ -712,7 +794,7 @@ window.addEventListener("DOMContentLoaded", () => {
           lastSettingsString = currentString;
         }
       } catch (err) {
-         sendDiscordLog("error","Error polling cloud settings:", err);
+        sendDiscordLog("error", "Error polling cloud settings:", err);
       }
     }
 
@@ -731,13 +813,16 @@ window.addEventListener("DOMContentLoaded", () => {
       setInterval(pollCloudSettings, 5000);
     });
 
-    // OBS Browser Source Memory & Performance Watchdog: 
+    // OBS Browser Source Memory & Performance Watchdog:
     // Automatically reloads the source if heap usage exceeds 300MB or at a periodic 2-hour interval to prevent lag/visual glitching.
     setInterval(() => {
       if (performance && performance.memory) {
         const usedHeapMB = performance.memory.usedJSHeapSize / (1024 * 1024);
         if (usedHeapMB > 300) {
-           sendDiscordLog("warning",`[OBS Watchdog] High memory usage detected (${usedHeapMB.toFixed(2)} MB). Reloading browser source...`);
+          sendDiscordLog(
+            "warning",
+            `[OBS Watchdog] High memory usage detected (${usedHeapMB.toFixed(2)} MB). Reloading browser source...`,
+          );
           window.location.reload();
         }
       }
@@ -745,12 +830,15 @@ window.addEventListener("DOMContentLoaded", () => {
 
     // Periodic interval safeguard reload (every 2 hours / 7200000ms) to clear background memory fragmentation during long streams
     setInterval(() => {
-       sendDiscordLog("info","[OBS Watchdog] Scheduled periodic browser source refresh to prevent memory fatigue.");
+      sendDiscordLog(
+        "info",
+        "[OBS Watchdog] Scheduled periodic browser source refresh to prevent memory fatigue.",
+      );
       window.location.reload();
     }, 7200000);
   }
 
-// Clear Pinned Announcement Handler
+  // Clear Pinned Announcement Handler
   document
     .getElementById("clearAnnouncementBtn")
     ?.addEventListener("click", async () => {
@@ -769,16 +857,23 @@ window.addEventListener("DOMContentLoaded", () => {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             pinnedAnnouncement: "",
-            action: "clear_announcement"
+            action: "clear_announcement",
           }),
         });
         if (response.ok) {
-           sendDiscordLog("info","Cloud pinned announcement cleared successfully.");
+          sendDiscordLog(
+            "info",
+            "Cloud pinned announcement cleared successfully.",
+          );
         } else {
-           sendDiscordLog("error","Failed to clear cloud pinned announcement.");
+          sendDiscordLog("error", "Failed to clear cloud pinned announcement.");
         }
       } catch (err) {
-         sendDiscordLog("error","Error communicating with cloud backend for announcement clearing:", err);
+        sendDiscordLog(
+          "error",
+          "Error communicating with cloud backend for announcement clearing:",
+          err,
+        );
       }
     });
 
@@ -875,7 +970,7 @@ function getPlatformBadge(source) {
 
 async function sendDiscordLog(level, message, error = null) {
   const formattedMessage = `🛠️ **[${level.toUpperCase()}]** ${message} ${error ? `\n> \`${error.message || error}\`` : ""}`;
-  
+
   // Fallback to console if webhook URL is missing
   if (!DISCORD_WEBHOOK_URL) {
     console[level](message, error || "");

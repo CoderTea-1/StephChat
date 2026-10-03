@@ -297,11 +297,15 @@ async function initYouTubeChat(channelId) {
     }
   }
 
+  // Retrieve YouTube API keys safely from global window state (populated via settings/backend)
+  let keyPool = (window.YOUTUBE_API_KEYS || []).map((k) =>
+    k.replace(/["']/g, "").trim(),
+  );
   let currentKeyIndex = 0;
-  let localRequestCount = 0;
   let consecutiveKeyFailures = 0;
 
-   sendDiscordLog("info",
+  sendDiscordLog(
+    "info",
     `YouTube Key Pool Initialized: Found ${keyPool.length} key(s). Keys array:`,
     keyPool,
   );
@@ -319,7 +323,8 @@ async function initYouTubeChat(channelId) {
     if (keyPool.length === 0) return;
     currentKeyIndex = (currentKeyIndex + 1) % keyPool.length;
     consecutiveKeyFailures++;
-     sendDiscordLog("info",
+    sendDiscordLog(
+      "info",
       `[YouTube Debug] Rotated to next key index -> ${currentKeyIndex} (Masked: ${maskKey(getCurrentKey())})`,
     );
   }
@@ -339,38 +344,12 @@ async function initYouTubeChat(channelId) {
     return midnight.getTime() - now.getTime();
   }
 
-  async function trackApiRequest(endpointName) {
-    localRequestCount++;
-    //  sendDiscordLog("info",`[YouTube Debug] API Pull executed (${endpointName}). Local request count: ${localRequestCount}`);
-    try {
-      const response = await fetch("/api/increment-counter", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ count: 1, timestamp: new Date().toISOString() }),
-      });
-      const data = await response.json();
-
-      if (data && typeof data.totalToday === "number") {
-        // sendDiscordLog("info",
-        //   `[YouTube API Counter] Total requests used today across all devices: ${data.totalToday}`,
-        // );
-      } else {
-        // sendDiscordLog("info",
-        //   `[YouTube API Counter] Requests today (Local fallback count): ${localRequestCount}`,
-        // );
-      }
-    } catch (err) {
-      // sendDiscordLog("info",
-      //   `[YouTube API Counter] Requests today (Local fallback count): ${localRequestCount} (Backend sync skipped/failed)`,
-      // );
-    }
-  }
-
   async function fetchYouTubeChat() {
     if (consecutiveKeyFailures >= keyPool.length) {
       const msToMidnight = getTimeUntilMidnight();
       const hoursLeft = (msToMidnight / (1000 * 60 * 60)).toFixed(2);
-      sendDiscordLog("error",
+      sendDiscordLog(
+        "error",
         `[YouTube Debug] All ${keyPool.length} API keys have failed. Stopping rotation and waiting until midnight (~${hoursLeft} hours) to resume.`,
       );
       triggerErrorFlash();
@@ -381,7 +360,8 @@ async function initYouTubeChat(channelId) {
 
     const ytKey = getCurrentKey();
     if (!ytKey) {
-      sendDiscordLog("error",
+      sendDiscordLog(
+        "error",
         "[YouTube Debug] Fetch Error: No API keys provided in the input pool.",
       );
       triggerErrorFlash();
@@ -396,62 +376,53 @@ async function initYouTubeChat(channelId) {
     }
 
     try {
-       sendDiscordLog("info",
+      sendDiscordLog(
+        "info",
         `[YouTube Debug] Trying key index ${currentKeyIndex} (${maskKey(ytKey)})`,
       );
     } catch (e) {}
 
     try {
-      if (!activeLiveChatId) {
-        // Direct Channel ID search query for live broadcasts
-        let searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${encodeURIComponent(channelId)}&eventType=live&type=video&key=${ytKey}`;
+      // Inside youtube.js -> replace the heavy search block with a lightweight status check:
 
-        let searchRes = await fetch(searchUrl);
-        await trackApiRequest("Search API (Channel ID)");
-
-        if (searchRes.status === 403 || searchRes.status === 429) {
-          triggerErrorFlash();
-          sendDiscordLog("warning",
-            `[YouTube Debug] Key index ${currentKeyIndex} failed search with status ${searchRes.status}. Rotating key.`,
+      async function checkStreamLiveStatus(channelId) {
+        try {
+          const res = await fetch(
+            `/api/stream-status?channelId=${encodeURIComponent(channelId)}`,
           );
-          rotateKey();
-          const t = setTimeout(fetchYouTubeChat, 500);
+          if (res.ok) {
+            const data = await res.json();
+            return data; // returns { isLive: true, videoId: "..." } from Redis
+          }
+        } catch (e) {
+          console.error("Error checking stream status:", e);
+        }
+        return { isLive: false };
+      }
+
+      // Inside fetchYouTubeChat():
+      if (!activeLiveChatId) {
+        let status = await checkStreamLiveStatus(channelId);
+
+        if (!status.isLive) {
+          sendDiscordLog(
+            "info",
+            `Channel ID ${channelId} is offline (waiting for webhook push). Checking again in 5 minutes...`,
+          );
+          const OFFLINE_CHECK_INTERVAL = 300000;
+          const t = setTimeout(
+            () => fetchYouTubeChat(),
+            OFFLINE_CHECK_INTERVAL,
+          );
           ytTimeouts.push(t);
           return;
-        }
-
-        let searchData = await searchRes.json();
-
-        if (searchData.items && searchData.items.length > 0) {
-          let videoId = searchData.items[0].id.videoId;
-          let detailsUrl = `https://www.googleapis.com/youtube/v3/videos?part=liveStreamingDetails&id=${videoId}&key=${ytKey}`;
+        } else {
+          // If webhook triggered live status, fetch details for that specific video directly (1 quota unit instead of 100!)
+          let detailsUrl = `https://www.googleapis.com/youtube/v3/videos?part=liveStreamingDetails&id=${status.videoId}&key=${ytKey}`;
           let detailsRes = await fetch(detailsUrl);
-          await trackApiRequest("Video Details API");
-
-          if (detailsRes.status === 403 || detailsRes.status === 429) {
-            triggerErrorFlash();
-            sendDiscordLog("warning",
-              `[YouTube Debug] Key index ${currentKeyIndex} failed video details with status ${detailsRes.status}. Rotating key.`,
-            );
-            rotateKey();
-            const t = setTimeout(fetchYouTubeChat, 500);
-            ytTimeouts.push(t);
-            return;
-          }
-
           let detailsData = await detailsRes.json();
           activeLiveChatId =
             detailsData.items?.[0]?.liveStreamingDetails?.activeLiveChatId;
-        }
-
-        if (!activeLiveChatId) {
-           sendDiscordLog("info",
-            `Channel ID ${channelId} has no active live stream right now. Checking again in 5 minutes...`,
-          );
-          const OFFLINE_CHECK_INTERVAL = 300000;
-          const t = setTimeout(fetchYouTubeChat, OFFLINE_CHECK_INTERVAL);
-          ytTimeouts.push(t);
-          return;
         }
       }
 
@@ -459,11 +430,11 @@ async function initYouTubeChat(channelId) {
       if (nextPageToken) msgUrl += `&pageToken=${nextPageToken}`;
 
       let msgRes = await fetch(msgUrl);
-      await trackApiRequest("Live Chat Messages API");
 
       if (msgRes.status === 403 || msgRes.status === 429) {
         triggerErrorFlash();
-        sendDiscordLog("warning",
+        sendDiscordLog(
+          "warning",
           `[YouTube Debug] Key index ${currentKeyIndex} hit quota/rate limit on messages (${msgRes.status}). Rotating key.`,
         );
         rotateKey();
@@ -504,13 +475,14 @@ async function initYouTubeChat(channelId) {
       const MIN_SAFE_INTERVAL = 15000;
       const nextInterval = Math.max(suggestedInterval, MIN_SAFE_INTERVAL);
 
-       sendDiscordLog("info",
+      sendDiscordLog(
+        "info",
         `[YouTube Debug] Scheduling next poll in ${nextInterval}ms using pollingIntervalMillis + safeguards.`,
       );
       const t = setTimeout(fetchYouTubeChat, nextInterval);
       ytTimeouts.push(t);
     } catch (err) {
-      sendDiscordLog("error","[YouTube Debug] Fetch Error:", err);
+      sendDiscordLog("[YouTube Debug] Fetch Error:", err);
       triggerErrorFlash();
       rotateKey();
       const delay = Math.min(globalBackoff, GLOBAL_MAX_BACKOFF);
