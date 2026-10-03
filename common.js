@@ -738,11 +738,18 @@ window.addEventListener("DOMContentLoaded", async () => {
   });
 
   // Setup Auto-Scroll state and toggle button
-  isScrollingEnabled = true; // Default to ON
+  const urlParams = new URLSearchParams(window.location.search);
+  const isObsBrowser = urlParams.get("hideconfig") === "true";
+
+  // If it's OBS, force auto-scroll to ALWAYS be enabled
+  isScrollingEnabled = isObsBrowser ? true : true; 
+  
   const scrollBtn = document.getElementById("toggle-scroll-btn");
   if (scrollBtn) scrollBtn.textContent = "Auto-Scroll: ON";
 
   scrollBtn?.addEventListener("click", () => {
+    // If it's an OBS source, keep it locked to ON or allow normal toggling depending on preference. 
+    // Here we allow regular toggling unless you want to lock it completely for OBS.
     isScrollingEnabled = !isScrollingEnabled;
     scrollBtn.textContent = `Auto-Scroll: ${isScrollingEnabled ? "ON" : "OFF"}`;
 
@@ -753,6 +760,13 @@ window.addEventListener("DOMContentLoaded", async () => {
 
   // Reliable scroll listener: updates auto-scroll toggle based on whether user is at bottom or scrolled up
   chatContainer.addEventListener("scroll", () => {
+    // If it's OBS, bypass manual scroll interrupts so it stays locked to bottom
+    if (isObsBrowser) {
+      isScrollingEnabled = true;
+      chatContainer.scrollTop = chatContainer.scrollHeight;
+      return;
+    }
+
     const currentScrollTop = chatContainer.scrollTop;
     const maxScrollTop = chatContainer.scrollHeight - chatContainer.clientHeight;
     
@@ -770,8 +784,7 @@ window.addEventListener("DOMContentLoaded", async () => {
     }
   });
 
-  const urlParams = new URLSearchParams(window.location.search);
-  if (urlParams.get("hideconfig") === "true") {
+  if (isObsBrowser) {
     document.getElementById("config-bar").style.display = "none";
 
     let lastSettingsString = "";
