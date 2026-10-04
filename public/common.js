@@ -1038,3 +1038,22 @@ eventSource.onmessage = function(event) {
 eventSource.onerror = function(err) {
   console.error("SSE connection lost. Browser will auto-reconnect...", err);
 };
+
+async function pollStreamEvents() {
+  try {
+    const response = await fetch('/api/events');
+    const data = await response.json();
+    
+    if (data.success && Array.isArray(data.events)) {
+      // Loop through and render events (make sure to track the last seen timestamp to avoid duplicates)
+      data.events.forEach(event => {
+        renderChatOrAlert(event);
+      });
+    }
+  } catch (err) {
+    console.error("Failed to poll stream events:", err);
+  }
+}
+
+// Poll every 3 seconds
+setInterval(pollStreamEvents, 3000);
