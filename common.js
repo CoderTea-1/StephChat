@@ -1018,45 +1018,23 @@ async function sendDiscordLog(level, message, error = null) {
     console[level](message, error || "");
   }
 }
-/* --- FRONT-END EVENT POLLING & CHAT INTEGRATION --- */
-let lastSeenEventTimestamp = 0;
+/* --- REAL-TIME SERVER-SENT EVENTS LISTENER --- */
+const eventSource = new EventSource('https://YOUR-BACKEND-URL.onrender.com/events');
 
-async function pollStreamEvents() {
-  try {
-    const response = await fetch("/api/events");
-    if (!response.ok) return;
+eventSource.onmessage = function(event) {
+  const data = JSON.parse(event.data);
+  
+  const formattedType = data.type.replace(/^channel\./, '').replace(/\./g, ' ');
+  const eventMessageText = `⚡ [${formattedType.toUpperCase()}] ${data.message}`;
+  
+  appendMessage(
+    'Twitch',
+    data.user,
+    eventMessageText,
+    '#9146ff' // Twitch purple accent
+  );
+};
 
-    const data = await response.json();
-    if (data.success && data.events) {
-      // Process events chronologically
-      data.events.reverse().forEach((event) => {
-        if (event.timestamp > lastSeenEventTimestamp) {
-          lastSeenEventTimestamp = event.timestamp;
-
-          // 1. Log explicitly to Browser Console
-          console.log(
-            `%c[Stream Event] ${event.type.toUpperCase()} from ${event.user}:`,
-            "color: #9146ff; font-weight: bold;",
-            event,
-          );
-
-          // 2. Render directly into the chat feed matching message styling
-          const formattedType = event.type.replace(/^channel\./, '').replace(/\./g, ' ');
-          const eventMessageText = `⚡ [${formattedType.toUpperCase()}] ${event.message}`;
-          
-          appendMessage(
-            'Twitch',
-            event.user,
-            eventMessageText,
-            '#9146ff' // Twitch accent color for event user headers
-          );
-        }
-      });
-    }
-  } catch (err) {
-    console.error("Failed to poll stream events:", err);
-  }
-}
-
-// Start polling every 3 seconds once the DOM is fully loaded
-setInterval(pollStreamEvents, 3000);
+eventSource.onerror = function(err) {
+  console.error("SSE connection lost. Browser will auto-reconnect...", err);
+};
