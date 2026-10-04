@@ -15,8 +15,8 @@ export default async function handler(req, res) {
 
     // 1. Handle Twitch EventSub Subscription Verification Challenge
     if (messageType === 'webhook_callback_verification') {
-      res.writeHead(200, { 'Content-Type': 'text/plain' });
-      return res.end(req.body?.challenge);
+      res.setHeader('content-type', 'text/plain');
+      return res.status(200).send(req.body?.challenge);
     }
 
     // 2. Handle Actual Notifications
