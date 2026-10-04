@@ -254,7 +254,7 @@ function appendMessage(
     return;
   }
 
-  if (checkAndAlertBannedWord(platform, username, rawText)) {
+  if (typeof checkAndAlertBannedWord === "function" && checkAndAlertBannedWord(platform, username, rawText)) {
     return;
   }
 
@@ -286,7 +286,6 @@ function appendMessage(
   let isPrismana = false;
   if (username && username.toLowerCase() === "masster_tea") {
     isPrismana = true;
-  } else {
   }
 
   const modNames = [
@@ -341,15 +340,10 @@ function appendMessage(
       isMod = true;
     }
   }
-  if (username && modNames.includes(username.toLowerCase())) {
-    isMod = true;
-  } else {
-  }
 
   let isBroadcaster = false;
   if (username && username.toLowerCase() === "sassinatorsteph") {
     isBroadcaster = true;
-  } else {
   }
 
   if (isPrismana) {
@@ -539,7 +533,7 @@ async function saveCurrentSettingsToCloud() {
       twitchChannel: document.getElementById("twitch-channel")?.value || "",
       kickChannel: document.getElementById("kick-channel")?.value || "",
       ytHandle: document.getElementById("yt-handle")?.value || "",
-      ytApiKey: window.YOUTUBE_API_KEY || "", // Preserve from global state if needed
+      ytApiKey: window.YOUTUBE_API_KEY || "",
       pinnedAnnouncement: document.getElementById("pinned-input")?.value || "",
       userboxColor:
         document.getElementById("userbox-color-picker")?.value || "",
@@ -580,7 +574,6 @@ async function loadSettingsOnStartup() {
     if (!response.ok) throw new Error("Failed to fetch settings from cloud");
 
     const data = await response.json();
-    // Extract the settings object from the backend wrapper { settings, bannedWords, allowedWords }
     const settings = data.settings || data;
     if (!settings || Object.keys(settings).length === 0) return;
 
@@ -599,7 +592,6 @@ async function loadSettingsOnStartup() {
     if (settings.ytApiKey || settings.ytApiKeys) {
       const rawKeys = settings.ytApiKeys || settings.ytApiKey;
 
-      // Converts comma-separated string or array from Vercel env into the array youtube.js expects
       window.YOUTUBE_API_KEYS = Array.isArray(rawKeys)
         ? rawKeys
         : rawKeys
@@ -613,7 +605,6 @@ async function loadSettingsOnStartup() {
       if (el) el.value = window.YOUTUBE_API_KEY;
     }
 
-    // 2. Populate color pickers and sliders with proper CSS-matching fallbacks
     if (settings.userboxColor) {
       const el = document.getElementById("userbox-color-picker");
       if (el) el.value = settings.userboxColor;
@@ -679,7 +670,7 @@ async function startChat() {
 
   chatContainer.innerHTML = "";
 
-  if (twitchWs) {
+  if (typeof twitchWs !== "undefined" && twitchWs) {
     twitchWs.onclose = null;
     twitchWs.close();
   }
@@ -691,9 +682,9 @@ async function startChat() {
   ytTimeouts.forEach((t) => clearTimeout(t));
   ytTimeouts = [];
 
-  if (twitchChan) initTwitchChat(twitchChan);
-  if (kickChan) initKickChat(kickChan);
-  if (ytHandle) initYouTubeChat(ytHandle);
+  if (twitchChan && typeof initTwitchChat === "function") initTwitchChat(twitchChan);
+  if (kickChan && typeof initKickChat === "function") initKickChat(kickChan);
+  if (ytHandle && typeof initYouTubeChat === "function") initYouTubeChat(ytHandle);
 }
 
 let reconnectAttempts = 0;
@@ -704,7 +695,7 @@ async function startChatWithRetry() {
 
   const twitchChan = document.getElementById("twitch-channel")?.value.trim();
   const needsTwitchRetry =
-    twitchChan && (!twitchWs || twitchWs.readyState !== WebSocket.OPEN);
+    twitchChan && (typeof twitchWs === "undefined" || !twitchWs || twitchWs.readyState !== WebSocket.OPEN);
 
   if (needsTwitchRetry && reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
     reconnectAttempts++;
@@ -751,7 +742,7 @@ window.addEventListener("DOMContentLoaded", async () => {
     clearTimeout(window.announcementSaveTimeout);
     window.announcementSaveTimeout = setTimeout(() => {
       saveCurrentSettingsToCloud();
-    }, 1000); // Debounce by 500ms / 1s or save on change
+    }, 1000);
   });
 
   pinnedInput?.addEventListener("blur", (e) => {
@@ -780,15 +771,12 @@ window.addEventListener("DOMContentLoaded", async () => {
     const maxScrollTop =
       chatContainer.scrollHeight - chatContainer.clientHeight;
 
-    // Consider "at the bottom" if within 10 pixels of the end
     const isAtBottom = currentScrollTop >= maxScrollTop - 10;
 
     if (isAtBottom) {
-      // Reached the bottom: automatically resume auto-scrolling
       isScrollingEnabled = true;
       if (scrollBtn) scrollBtn.textContent = "Auto-Scroll: ON";
     } else {
-      // Scrolled up: hold position / pause auto-scrolling
       isScrollingEnabled = false;
       if (scrollBtn) scrollBtn.textContent = "Auto-Scroll: OFF";
     }
@@ -796,7 +784,8 @@ window.addEventListener("DOMContentLoaded", async () => {
 
   const urlParams = new URLSearchParams(window.location.search);
   if (urlParams.get("hideconfig") === "true") {
-    document.getElementById("config-bar").style.display = "none";
+    const configBar = document.getElementById("config-bar");
+    if (configBar) configBar.style.display = "none";
 
     let lastSettingsString = "";
 
@@ -833,12 +822,9 @@ window.addEventListener("DOMContentLoaded", async () => {
 
       startChatWithRetry();
 
-      // Poll cloud settings every 5 seconds for changes triggered by the control panel
       setInterval(pollCloudSettings, 5000);
     });
 
-    // OBS Browser Source Memory & Performance Watchdog:
-    // Automatically reloads the source if heap usage exceeds 300MB or at a periodic 2-hour interval to prevent lag/visual glitching.
     setInterval(() => {
       if (performance && performance.memory) {
         const usedHeapMB = performance.memory.usedJSHeapSize / (1024 * 1024);
@@ -852,7 +838,6 @@ window.addEventListener("DOMContentLoaded", async () => {
       }
     }, 15000);
 
-    // Periodic interval safeguard reload (every 2 hours / 7200000ms) to clear background memory fragmentation during long streams
     setInterval(() => {
       sendDiscordLog(
         "info",
@@ -866,15 +851,12 @@ window.addEventListener("DOMContentLoaded", async () => {
   document
     .getElementById("clearAnnouncementBtn")
     ?.addEventListener("click", async () => {
-      // 1. Clear local storage
       localStorage.removeItem("stream_pinned_announcement");
 
-      // 2. Clear input field and remove announcement bar from DOM/UI
       const pinnedInput = document.getElementById("pinned-input");
       if (pinnedInput) pinnedInput.value = "";
       setPinnedAnnouncement("");
 
-      // 3. Send update to cloud backend (settings.js / Redis) to wipe pinnedAnnouncement
       try {
         const response = await fetch(`${API_BASE}/api/settings`, {
           method: "POST",
@@ -906,7 +888,9 @@ window.addEventListener("DOMContentLoaded", async () => {
     ?.addEventListener("click", async () => {
       const choice = prompt(
         "Where would you like to clear color settings?\nType: 'local', 'cloud', or 'both'",
-      ).toLowerCase();
+      )?.toLowerCase();
+
+      if (!choice) return;
 
       if (choice === "local" || choice === "both") {
         localStorage.removeItem("savedUserBoxHex");
@@ -936,7 +920,9 @@ window.addEventListener("DOMContentLoaded", async () => {
     ?.addEventListener("click", async () => {
       const choice = prompt(
         "Where would you like to clear emote settings?\nType: 'local', 'cloud', or 'both'",
-      ).toLowerCase();
+      )?.toLowerCase();
+
+      if (!choice) return;
 
       if (choice === "local" || choice === "both") {
         Object.keys(emoteTriggers).forEach((keyword) => {
@@ -995,25 +981,22 @@ function getPlatformBadge(source) {
 async function sendDiscordLog(level, message, error = null) {
   const formattedMessage = `🛠️ **[${level.toUpperCase()}]** ${message} ${error ? `\n> \`${error.message || error}\`` : ""}`;
 
-  // Fallback to console if webhook URL is missing
-  if (!DISCORD_WEBHOOK_URL) {
+  if (!window.DISCORD_WEBHOOK_URL) {
     console[level](message, error || "");
     return;
   }
 
   try {
-    const res = await fetch(DISCORD_WEBHOOK_URL, {
+    const res = await fetch(window.DISCORD_WEBHOOK_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ content: formattedMessage }),
     });
 
     if (!res.ok) {
-      // Fallback to console if Discord returns an error status
       console[level](message, error || "");
     }
   } catch (err) {
-    // Fallback to console on network/fetch failure
     console[level](message, error || "");
   }
 }
@@ -1022,38 +1005,23 @@ async function sendDiscordLog(level, message, error = null) {
 const eventSource = new EventSource(`${API_BASE}/events`);
 
 eventSource.onmessage = function(event) {
-  const data = JSON.parse(event.data);
-  
-  const formattedType = data.type.replace(/^channel\./, '').replace(/\./g, ' ');
-  const eventMessageText = `⚡ [${formattedType.toUpperCase()}] ${data.message}`;
-  
-  appendMessage(
-    'Twitch',
-    data.user,
-    eventMessageText,
-    '#9146ff'
-  );
+  try {
+    const data = JSON.parse(event.data);
+    
+    const formattedType = data.type ? data.type.replace(/^channel\./, '').replace(/\./g, ' ') : 'event';
+    const eventMessageText = data.message || "Triggered an event!";
+    
+    appendMessage(
+      'Twitch',
+      data.user || 'TwitchUser',
+      `⚡ [${formattedType.toUpperCase()}] ${eventMessageText}`,
+      '#9146ff'
+    );
+  } catch (err) {
+    console.error("Failed to parse SSE message data:", err);
+  }
 };
 
 eventSource.onerror = function(err) {
   console.error("SSE connection lost. Browser will auto-reconnect...", err);
 };
-
-async function pollStreamEvents() {
-  try {
-    const response = await fetch('/api/events');
-    const data = await response.json();
-    
-    if (data.success && Array.isArray(data.events)) {
-      // Loop through and render events (make sure to track the last seen timestamp to avoid duplicates)
-      data.events.forEach(event => {
-        renderChatOrAlert(event);
-      });
-    }
-  } catch (err) {
-    console.error("Failed to poll stream events:", err);
-  }
-}
-
-// Poll every 3 seconds
-setInterval(pollStreamEvents, 3000);
