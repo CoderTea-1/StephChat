@@ -1,7 +1,6 @@
 /* Global references and state variables */
 const chatContainer = document.getElementById("chat-container");
 let ytTimeouts = [];
-let twitchWs = null;
 let pusherInstance = null;
 const seenKickIds = new Set();
 let isScrollingEnabled = false;
@@ -407,6 +406,21 @@ function appendMessage(
   const urlParams = new URLSearchParams(window.location.search);
   const isObsBrowser = urlParams.get("hideconfig") === "true";
 
+  if (urlParams.get("logged_in") === "true") {
+    const banner = document.createElement("div");
+    banner.style.cssText =
+      "background: #2ed573; color: #fff; padding: 12px; text-align: center; font-weight: bold; font-family: sans-serif; position: fixed; top: 0; left: 0; width: 100%; z-index: 99999; box-shadow: 0 4px 6px rgba(0,0,0,0.2); transition: opacity 0.5s ease;";
+    banner.textContent =
+      "🎉 Successfully authenticated and connected to platform! Tokens saved to Redis.";
+    document.body.prepend(banner);
+
+    // Fade out and remove after 5 seconds
+    setTimeout(() => {
+      banner.style.opacity = "0";
+      setTimeout(() => banner.remove(), 500);
+    }, 5000);
+  }
+
   if (isObsBrowser) {
     const MAX_OBS_MESSAGES = 10; // Adjust your preferred message limit here
     while (chatContainer.children.length > MAX_OBS_MESSAGES) {
@@ -667,7 +681,6 @@ async function startChat() {
   if (twitchWs) {
     twitchWs.onclose = null;
     twitchWs.close();
-    twitchWs = null;
   }
   if (pusherInstance) {
     pusherInstance.disconnect();
@@ -714,6 +727,17 @@ window.addEventListener("DOMContentLoaded", async () => {
   initEmoteToggles();
   await loadSettingsOnStartup();
 
+  document.getElementById("twitch-oauth-btn")?.addEventListener("click", () => {
+    // Replace with your actual backend route for Twitch authentication
+    window.location.href = "/api/auth/twitch";
+  });
+
+  // YouTube OAuth Handler
+  document.getElementById("yt-oauth-btn")?.addEventListener("click", () => {
+    // Replace with your actual backend route for YouTube authentication
+    window.location.href = "/api/auth/youtube";
+  });
+
   const savedAnnouncement = localStorage.getItem("stream_pinned_announcement");
   const pinnedInput = document.getElementById("pinned-input");
 
@@ -754,8 +778,9 @@ window.addEventListener("DOMContentLoaded", async () => {
   // Reliable scroll listener: updates auto-scroll toggle based on whether user is at bottom or scrolled up
   chatContainer.addEventListener("scroll", () => {
     const currentScrollTop = chatContainer.scrollTop;
-    const maxScrollTop = chatContainer.scrollHeight - chatContainer.clientHeight;
-    
+    const maxScrollTop =
+      chatContainer.scrollHeight - chatContainer.clientHeight;
+
     // Consider "at the bottom" if within 10 pixels of the end
     const isAtBottom = currentScrollTop >= maxScrollTop - 10;
 
@@ -993,3 +1018,45 @@ async function sendDiscordLog(level, message, error = null) {
     console[level](message, error || "");
   }
 }
+/* --- FRONT-END EVENT POLLING & CHAT INTEGRATION --- */
+let lastSeenEventTimestamp = 0;
+
+async function pollStreamEvents() {
+  try {
+    const response = await fetch("/api/events");
+    if (!response.ok) return;
+
+    const data = await response.json();
+    if (data.success && data.events) {
+      // Process events chronologically
+      data.events.reverse().forEach((event) => {
+        if (event.timestamp > lastSeenEventTimestamp) {
+          lastSeenEventTimestamp = event.timestamp;
+
+          // 1. Log explicitly to Browser Console
+          console.log(
+            `%c[Stream Event] ${event.type.toUpperCase()} from ${event.user}:`,
+            "color: #9146ff; font-weight: bold;",
+            event,
+          );
+
+          // 2. Render directly into the chat feed matching message styling
+          const formattedType = event.type.replace(/^channel\./, '').replace(/\./g, ' ');
+          const eventMessageText = `⚡ [${formattedType.toUpperCase()}] ${event.message}`;
+          
+          appendMessage(
+            'Twitch',
+            event.user,
+            eventMessageText,
+            '#9146ff' // Twitch accent color for event user headers
+          );
+        }
+      });
+    }
+  } catch (err) {
+    console.error("Failed to poll stream events:", err);
+  }
+}
+
+// Start polling every 3 seconds once the DOM is fully loaded
+setInterval(pollStreamEvents, 3000);

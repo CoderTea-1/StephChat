@@ -173,6 +173,27 @@
       </script>
       <button id="clearColorsBtn">Clear Color Settings</button>
       <button id="clearEmotesBtn">Clear Emote Settings</button>
+      <!-- Add these buttons inside your #config-bar div -->
+      <div
+        class="oauth-buttons-container"
+        style="display: flex; gap: 8px; margin-top: 6px"
+      >
+        <a href="/api/auth/twitch" class="login-button"> Connect with Twitch </a>
+        <button
+          type="button"
+          id="twitch-oauth-btn"
+          style="background: #9146ff; color: #fff"
+        >
+          Connect Twitch OAuth
+        </button>
+        <button
+          type="button"
+          id="yt-oauth-btn"
+          style="background: #ff0000; color: #fff"
+        >
+          Connect YouTube OAuth
+        </button>
+      </div>
     </div>
 
     <div id="pinned-announcement-bar">

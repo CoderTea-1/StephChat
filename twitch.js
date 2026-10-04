@@ -320,18 +320,6 @@ function renderTwitchBadges(badgesString, badgeInfoString, container) {
 // GIPHY API INTEGRATION FOR ALT-TEXT GIFS
 // ==========================================
 
-const GIPHY_API_KEY = "";
-
-/**
- * Extracts core terms from bracketed alt-text strings
- */
-// ==========================================
-// GIPHY API INTEGRATION FOR ALT-TEXT GIFS
-// ==========================================
-
-/**
- * Extracts core terms from bracketed alt-text strings
- */
 function extractGiphySearchTerm(text) {
   if (!text || typeof text !== "string")
     return { searchTerm: null, author: null };
@@ -351,9 +339,6 @@ function extractGiphySearchTerm(text) {
   return { searchTerm: content, author: author };
 }
 
-/**
- * Calculates token overlap score between search term and Giphy result title.
- */
 function calculateTokenOverlapScore(
   searchTerm,
   gifTitle,
@@ -382,9 +367,6 @@ function calculateTokenOverlapScore(
   return matches / searchTokens.length;
 }
 
-/**
- * Uses the Giphy Translate/Search endpoint securely using the backend environment variable bridge
- */
 async function fetchAndRenderGiphyGif(altTextString, container) {
   const { searchTerm, author } = extractGiphySearchTerm(altTextString);
   if (!searchTerm) {
@@ -405,7 +387,6 @@ async function fetchAndRenderGiphyGif(altTextString, container) {
       );
     }
   } catch (err) {
-    // Replaced silent failure with Discord logging
     await sendDiscordLog(
       "error",
       "Failed to fetch Giphy API key from settings",
@@ -472,26 +453,14 @@ async function fetchAndRenderGiphyGif(altTextString, container) {
   }
 }
 
-/**
- * 1. Modified renderTwitchEmotes to check if message text contains bracketed GIF descriptions
- */
 async function renderTwitchEmotes(text, emotesString, container) {
-  //sendDiscordLog("info","[GiphyDebug] renderTwitchEmotes triggered.");
-  //sendDiscordLog("info","[GiphyDebug] Raw message text passed:", text);
-  //sendDiscordLog("info","[GiphyDebug] Raw emotesString passed:", emotesString);
-
   try {
     const trimmedText = text ? text.trim() : "";
-    //sendDiscordLog("info","[GiphyDebug] Trimmed message text:", trimmedText);
 
-    // Check if the cleaned message is entirely a bracketed GIF alt-text string
     if (trimmedText.startsWith("[") && trimmedText.endsWith("]")) {
-      //sendDiscordLog("info",  "[GiphyDebug] Condition met: Message matches bracketed alt-text format. Bypassing emote map logic to trigger Giphy lookup.",  );
       container.textContent = " ";
       await fetchAndRenderGiphyGif(trimmedText, container);
       return;
-    } else {
-      //sendDiscordLog("info","");
     }
 
     const emoteMap = [];
@@ -560,72 +529,317 @@ async function renderTwitchEmotes(text, emotesString, container) {
   }
 }
 
-/* Twitch Chat Initialization */
-function initTwitchChat(twitchChan) {
-  twitchWs = new WebSocket("wss://irc-ws.chat.twitch.tv:443");
-  twitchWs.onopen = () => {
-    twitchWs.send("CAP REQ :twitch.tv/tags twitch.tv/commands");
-    twitchWs.send("NICK justinfan" + Math.floor(Math.random() * 89999 + 10000));
-    twitchWs.send(`JOIN #${twitchChan.toLowerCase()}`);
-  };
-  twitchWs.onmessage = (event) => {
-    const data = event.data;
-    if (data.startsWith("PING")) {
-      twitchWs.send("PONG :tmi.twitch.tv");
-    } else if (data.includes("PRIVMSG")) {
-      try {
-        const tagsPart = data.substring(0, data.indexOf("PRIVMSG"));
-        const userMatch = tagsPart.match(/display-name=([^;]*)/);
-        const colorMatch = tagsPart.match(/color=([^;]*)/);
-        const emotesMatch = tagsPart.match(/emotes=([^;]*)/);
-        const badgesMatch = tagsPart.match(/badges=([^;]*)/);
-        const badgeInfoMatch = tagsPart.match(/badge-info=([^;]*)/);
+// ==========================================
+// TWITCH EVENTSUB WEBSOCKET IMPLEMENTATION
+// ==========================================
 
-        const username = userMatch && userMatch[1] ? userMatch[1] : "Unknown";
-        const color = colorMatch && colorMatch[1] ? colorMatch[1] : "#b19cd9";
-        const emotesData =
-          emotesMatch && emotesMatch[1] && emotesMatch[1] !== ":"
-            ? emotesMatch[1]
-            : null;
-        const twitchBadges =
-          badgesMatch && badgesMatch[1] && badgesMatch[1] !== ":"
-            ? badgesMatch[1]
-            : null;
-        const badgeInfo =
-          badgeInfoMatch && badgeInfoMatch[1] && badgeInfoMatch[1] !== ":"
-            ? badgeInfoMatch[1]
-            : null;
+let twitchWs = null;
 
-        const msgIndex = data.indexOf("PRIVMSG");
-        const trailingIndex = data.indexOf(" :", msgIndex);
-        const msgText =
-          trailingIndex !== -1 ? data.substring(trailingIndex + 2).trim() : "";
-
-        appendMessage(
-          "Twitch",
-          username,
-          msgText,
-          color,
-          emotesData,
-          null,
-          twitchBadges,
-          [],
-          badgeInfo,
-        );
-      } catch (e) {
-        sendDiscordLog(error, "Twitch parsing error:", e);
-      }
+async function initTwitchEventSub(overrideChannelName) {
+  try {
+    // 1. Fetch settings from your backend API
+    const res = await fetch("/api/settings");
+    if (!res.ok) {
+      throw new Error(`Failed to fetch settings: status ${res.status}`);
     }
+    const data = await res.json();
+    const settings = data.settings || {};
+
+    const clientId = settings.twitchClientId || "";
+    const accessToken = settings.twitchAccessToken || "";
+    const broadcasterUserId = settings.twitchBroadcasterUserId || "";
+    const channelName = overrideChannelName || settings.twitchChannel || "";
+
+    if (!clientId || !accessToken || !broadcasterUserId) {
+      sendDiscordLog(
+        "warn",
+        "[Twitch EventSub] Missing Twitch Client ID, Access Token, or Broadcaster User ID in settings.",
+      );
+      console.log("[Twitch EventSub] Missing Twitch Client ID, Access Token, or Broadcaster User ID in settings.")
+      return;
+    }
+
+    // 2. Open WebSocket connection to Twitch EventSub
+    twitchWs = new WebSocket("wss://eventsub.wss.twitch.tv/ws");
+
+    twitchWs.onopen = () => {
+      sendDiscordLog(
+        "info",
+        "[Twitch EventSub] Connected to WebSocket server.",
+      );
+      console.log("[Twitch EventSub] Connected to WebSocket server.")
+    };
+
+    twitchWs.onmessage = async (event) => {
+      try {
+        const message = JSON.parse(event.data);
+        console.log("RAW WEBSOCKET MESSAGE:", message);
+        const messageType = message.metadata?.message_type;
+
+        // Handle Welcome Session
+        if (messageType === "session_welcome") {
+          const sessionId = message.payload.session.id;
+          sendDiscordLog(
+            "info",
+            `[Twitch EventSub] Session welcome received. ID: ${sessionId}`,
+          );
+          console.log(`[Twitch EventSub] Session welcome received. ID: ${sessionId}`)
+
+          const eventsToRegister = [
+            {
+              type: "channel.chat.message",
+              version: "1",
+              condition: {
+                broadcaster_user_id: broadcasterUserId,
+                user_id: broadcasterUserId,
+              },
+            },
+            {
+              type: "channel.follow",
+              version: "2",
+              condition: {
+                broadcaster_user_id: broadcasterUserId,
+                moderator_user_id: broadcasterUserId,
+              },
+            },
+            {
+              type: "channel.subscribe",
+              version: "1",
+              condition: { broadcaster_user_id: broadcasterUserId },
+            },
+            {
+              type: "channel.subscription.gift",
+              version: "1",
+              condition: { broadcaster_user_id: broadcasterUserId },
+            },
+            {
+              type: "channel.cheer",
+              version: "1",
+              condition: { broadcaster_user_id: broadcasterUserId },
+            },
+            {
+              type: "channel.raid",
+              version: "1",
+              condition: { to_broadcaster_user_id: broadcasterUserId },
+            },
+            {
+              type: "channel.channel_points_custom_reward_redemption.add",
+              version: "1",
+              condition: { broadcaster_user_id: broadcasterUserId },
+            },
+          ];
+
+          for (const evConfig of eventsToRegister) {
+            await registerEventSubSubscription(
+              sessionId,
+              evConfig.type,
+              evConfig.version,
+              evConfig.condition,
+              clientId,
+              accessToken,
+            );
+          }
+        }
+        // Handle Keepalive
+        else if (messageType === "session_keepalive") {
+          // Normal heartbeat, no action required
+        }
+        // Handle Reconnect
+        else if (messageType === "session_reconnect") {
+          const reconnectUrl = message.payload.session.reconnect_url;
+          sendDiscordLog(
+            "warn",
+            "[Twitch EventSub] Reconnect requested. Connecting to new URL...",
+          );
+          console.log("[Twitch EventSub] Reconnect requested. Connecting to new URL...")
+          twitchWs.close();
+          twitchWs = new WebSocket(reconnectUrl);
+        }
+        // Handle Notifications (Chat Messages & All EventSub Events)
+        else if (messageType === "notification") {
+          const subType = message.metadata?.subscription_type;
+          const ev = message.payload.event;
+
+          // DEBUG: Log every incoming notification to your console
+          console.log(`[EventSub Notification Received] Type: ${subType}`, ev);
+
+          if (subType === "channel.chat.message") {
+            const username = ev.chatter_user_name || ev.chatter_user_login || "Unknown";
+            const color = ev.color || "#b19cd9";
+            const msgText = ev.message?.text || "";
+
+            // Convert EventSub badges array to comma-separated format
+            const badgesArr = [];
+            const badgeInfoArr = [];
+            if (ev.badges) {
+              ev.badges.forEach((b) => {
+                badgesArr.push(`${b.set_id}/${b.id}`);
+                if (b.info) {
+                  badgeInfoArr.push(`${b.set_id}/${b.info}`);
+                }
+              });
+            }
+            const badgesString = badgesArr.join(",");
+            const badgeInfoString = badgeInfoArr.join(",");
+
+            // Convert EventSub message fragments to emote string format (id:start-end)
+            let currentIdx = 0;
+            let emoteMapParts = [];
+            if (ev.message?.fragments) {
+              ev.message.fragments.forEach((frag) => {
+                const fragLen = frag.text ? frag.text.length : 0;
+                if (frag.type === "emote" && frag.emote) {
+                  emoteMapParts.push(
+                    `${frag.emote.id}:${currentIdx}-${currentIdx + fragLen - 1}`,
+                  );
+                }
+                currentIdx += fragLen;
+              });
+            }
+            const emotesData = emoteMapParts.join("/");
+
+            appendMessage(
+              "Twitch",
+              username,
+              msgText,
+              color,
+              emotesData,
+              null,
+              badgesString,
+              [],
+              badgeInfoString,
+            );
+          } else {
+            // Handle all other EventSub notifications with safe fallbacks
+            let username = ev?.user_name || ev?.user_login || ev?.from_broadcaster_user_name || ev?.chatter_user_name || "Twitch Event";
+            let msgText = "";
+            let color = "#9146FF"; // Twitch purple for system notifications
+
+            switch (subType) {
+              case "channel.subscribe":
+                msgText = `subscribed at Tier ${ev?.tier || '1'}! ${ev?.is_gift ? '(Gifted sub)' : ''}`;
+                break;
+              case "channel.subscription.gift":
+                username = ev?.user_name || ev?.user_login || "Anonymous Gifter";
+                msgText = `gifted ${ev?.total || 1} Tier ${ev?.tier || '1'} subscription(s)! 🎁`;
+                break;
+              case "channel.cheer":
+                msgText = `cheered ${ev?.bits || 0} bits! ${ev?.message || ''} 💎`;
+                break;
+              case "channel.follow":
+                msgText = `is now following the channel! 🎉`;
+                break;
+              case "channel.raid":
+                username = ev?.from_broadcaster_user_name || "A Streamer";
+                msgText = `raided the channel with ${ev?.viewers || 0} viewers! 🚀`;
+                break;
+              case "channel.channel_points_custom_reward_redemption.add":
+                const rewardTitle = ev?.reward?.title || "Custom Reward";
+                const userPrompt = ev?.user_input ? ` (Message: "${ev.user_input}")` : "";
+                msgText = `redeemed **${rewardTitle}** for ${ev?.reward?.cost || 0} points!${userPrompt} 🌟`;
+                color = "#00BF63";
+                break;
+              default:
+                msgText = `triggered event: ${subType}`;
+                break;
+            }
+
+            appendMessage("Twitch", username, msgText, color, null, null, null, [], null);
+          }
+        }
+      } catch (err) {
+        sendDiscordLog(
+          "error",
+          "[Twitch EventSub] Error handling message:",
+          err,
+        );
+        console.log("[Twitch EventSub] Error handling message:")
+      }
+    };
+
     twitchWs.onclose = () => {
       sendDiscordLog(
-        "warning",
-        "[Twitch] Connection closed. Reconnecting in 5 seconds...",
+        "warn",
+        "[Twitch EventSub] Connection closed. Reconnecting in 5 seconds...",
       );
+      console.log("[Twitch EventSub] Connection closed. Reconnecting in 5 seconds...")
       setTimeout(() => {
-        if (document.getElementById("twitch-channel")?.value) {
-          initTwitchChat(twitchChan);
-        }
+        initTwitchEventSub(channelName);
       }, 5000);
     };
-  };
+
+    twitchWs.onerror = (error) => {
+      sendDiscordLog("error", "[Twitch EventSub] WebSocket Error:", error);
+      console.log("[Twitch EventSub] WebSocket Error:")
+    };
+  } catch (e) {
+    sendDiscordLog("error", "[Twitch EventSub] Initialization error:", e);
+    console.log("[Twitch EventSub] Initialization error:")
+  }
+}
+
+/**
+ * Sends a POST request to Twitch Helix API to subscribe the EventSub session to specified event types.
+ */
+async function registerEventSubSubscription(
+  sessionId,
+  eventType,
+  eventVersion,
+  conditionObj,
+  clientId,
+  accessToken,
+) {
+  try {
+    const response = await fetch(
+      "https://api.twitch.tv/helix/eventsub/subscriptions",
+      {
+        method: "POST",
+        headers: {
+          "Client-Id": clientId,
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          type: eventType,
+          version: eventVersion,
+          condition: conditionObj,
+          transport: {
+            method: "websocket",
+            session_id: sessionId,
+          },
+        }),
+      },
+    );
+
+    if (!response.ok) {
+      const errData = await response.json();
+      // Log directly to console as well so you don't miss any scope/auth mismatches
+      console.error(`[Twitch EventSub] Failed to create subscription for ${eventType} (${response.status}):`, errData);
+      sendDiscordLog(
+        "error",
+        `[Twitch EventSub] Failed to create subscription for ${eventType} (${response.status}):`,
+        errData,
+      );
+    } else {
+      const data = await response.json();
+      console.log(`[Twitch EventSub] Successfully subscribed to: ${eventType}`, data);
+      sendDiscordLog(
+        "info",
+        `[Twitch EventSub] Successfully subscribed to ${eventType}`,
+      );
+      console.log(`[Twitch EventSub] Successfully subscribed to ${eventType}`)
+    }
+  } catch (e) {
+    console.error(`[Twitch EventSub] Exception during subscription request for ${eventType}:`, e);
+    sendDiscordLog(
+      "error",
+      `[Twitch EventSub] Exception during subscription request for ${eventType}:`,
+      e,
+    );
+  }
+}
+
+// Backward-compatible wrapper function
+function initTwitchChat(twitchChan) {
+  initTwitchEventSub(twitchChan);
 }

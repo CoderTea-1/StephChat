@@ -2,15 +2,13 @@ import { Redis } from "@upstash/redis";
 
 // Robust fallback to support both standard Upstash and Vercel KV environment variables
 const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL || "",
-  token:
-    process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN || "",
+  url: process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL,
+  token: process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN,
 });
 
 // In-Memory TTL Cache State
 let cachedSettings = null;
 let cachedBannedWords = null;
-let cachedAllowedWords = null;
 let cacheTimestamp = 0;
 const CACHE_TTL_MS = 1800000; // 30 minute cache duration
 
@@ -31,16 +29,15 @@ const defaultSettings = {
 function invalidateCache() {
   cachedSettings = null;
   cachedBannedWords = null;
-  cachedAllowedWords = null;
   cacheTimestamp = 0;
 }
 
+// --- VERCEL-COMPATIBLE API HANDLER (Mounted to /api/settings) ---
 export default async function handler(req, res) {
   if (req.method === "GET") {
     try {
       const now = Date.now();
 
-      // Return from in-memory cache if valid
       if (cachedSettings && now - cacheTimestamp < CACHE_TTL_MS) {
         return res.status(200).json({
           settings: cachedSettings,
@@ -48,7 +45,6 @@ export default async function handler(req, res) {
         });
       }
 
-      // Otherwise fetch from Redis with graceful error handling
       let settings = { ...defaultSettings };
       let bannedWords = [];
 
@@ -56,42 +52,72 @@ export default async function handler(req, res) {
         settings = (await redis.get("app_settings")) || { ...defaultSettings };
         bannedWords = (await redis.get("banned_words")) || [];
       } catch (redisErr) {
-        sendDiscordLogBackend(
+        await sendDiscordLogBackend(
           "warning",
           "[Redis Connection/Auth Warning] Using default configurations:",
           redisErr.message,
         );
       }
 
-      // Always inject the environment variable versions of the secrets server-side
+      // Dynamically pull OAuth and profile info stored from Redis / Twitch
+      const accessToken = (await redis.get("twitch_access_token")) || "";
+      const clientId = process.env.TWITCH_CLIENT_ID || "";
+
+      let broadcasterUserId = "";
+      let twitchChannel = settings.twitchChannel || "";
+
+      if (accessToken && clientId) {
+        try {
+          const userResponse = await fetch(
+            "https://api.twitch.tv/helix/users",
+            {
+              headers: {
+                "Client-ID": clientId,
+                Authorization: `Bearer ${accessToken}`,
+              },
+            },
+          );
+
+          if (userResponse.ok) {
+            const userData = await userResponse.json();
+            const user = userData.data?.[0];
+            if (user) {
+              broadcasterUserId = user.id;
+              if (!twitchChannel) {
+                twitchChannel = user.login;
+              }
+            }
+          }
+        } catch (twitchErr) {
+          console.error(
+            "Failed to fetch Twitch user details from token:",
+            twitchErr,
+          );
+        }
+      }
+
+      settings.twitchClientId = clientId;
+      settings.twitchAccessToken = accessToken;
+      settings.twitchBroadcasterUserId = broadcasterUserId;
+      settings.twitchChannel = twitchChannel;
       settings.ytApiKey = process.env.YT_API_KEY || "";
       settings.giphyApiKey = process.env.GIPHY_API_KEY || "";
       settings.discordWebhookUrl = process.env.DISCORD_WEBHOOK_URL || "";
 
-      // Update in-memory cache
       cachedSettings = settings;
       cachedBannedWords = bannedWords;
       cacheTimestamp = now;
 
       return res.status(200).json({ settings, bannedWords });
     } catch (error) {
-      // Detailed inspection logging for debugging
       await sendDiscordLogBackend("error", "--- DEBUG API GET ERROR ---");
       await sendDiscordLogBackend("error", "Error Name:", error.name);
       await sendDiscordLogBackend("error", "Error Message:", error.message);
-      await sendDiscordLogBackend(
-        "error",
-        "URL Env Present:",
-        !!process.env.UPSTASH_REDIS_REST_URL || !!process.env.KV_REST_API_URL,
-      );
-      await sendDiscordLogBackend(
-        "error",
-        "Token Env Present:",
-        !!process.env.UPSTASH_REDIS_REST_TOKEN ||
-          !!process.env.KV_REST_API_TOKEN,
-      );
 
       const fallbackSettings = { ...defaultSettings };
+      fallbackSettings.twitchClientId = process.env.TWITCH_CLIENT_ID || "";
+      fallbackSettings.twitchAccessToken =
+        (await redis.get("twitch_access_token")) || "";
       fallbackSettings.ytApiKey = process.env.YT_API_KEY || "";
       fallbackSettings.giphyApiKey = process.env.GIPHY_API_KEY || "";
       fallbackSettings.discordWebhookUrl =
@@ -116,21 +142,21 @@ export default async function handler(req, res) {
       if (body.action === "clear") {
         await redis.del("app_settings");
         let freshSettings = { ...defaultSettings };
+        freshSettings.twitchClientId = process.env.TWITCH_CLIENT_ID || "";
+        freshSettings.twitchAccessToken =
+          (await redis.get("twitch_access_token")) || "";
         freshSettings.ytApiKey = process.env.YT_API_KEY || "";
         freshSettings.giphyApiKey = process.env.GIPHY_API_KEY || "";
         freshSettings.discordWebhookUrl = process.env.DISCORD_WEBHOOK_URL || "";
         return res.status(200).json({ success: true, settings: freshSettings });
       }
 
-      // Prevent saving hardcoded/client-edited sensitive keys back to Redis
       if (body.ytApiKey) delete body.ytApiKey;
       if (body.giphyApiKey) delete body.giphyApiKey;
       if (body.discordWebhookUrl) delete body.discordWebhookUrl;
 
-      // Invalidate cache immediately on any write/mutation operation
       invalidateCache();
 
-      // 1. Import bulk GitHub list action
       if (body.action === "import_github_lists") {
         const externalWords = body.words || [];
         let currentBanned = [];
@@ -152,7 +178,6 @@ export default async function handler(req, res) {
         return res.status(200).json({ success: true, bannedWords: combined });
       }
 
-      // Add a custom banned word action
       if (body.action === "add_banned_word") {
         const word = body.word ? body.word.trim().toLowerCase() : "";
         if (!word) return res.status(400).json({ error: "No word provided" });
@@ -173,7 +198,6 @@ export default async function handler(req, res) {
           .json({ success: true, bannedWords: currentBanned });
       }
 
-      // Remove a custom banned word action
       if (body.action === "remove_banned_word") {
         const word = body.word ? body.word.trim().toLowerCase() : "";
         invalidateCache();
@@ -192,7 +216,6 @@ export default async function handler(req, res) {
           .json({ success: true, bannedWords: currentBanned });
       }
 
-      // Fetch current settings, merge new updates, and save back
       let currentSettings = { ...defaultSettings };
       try {
         currentSettings = (await redis.get("app_settings")) || {
@@ -216,10 +239,8 @@ export default async function handler(req, res) {
         currentSettings = { ...currentSettings, ...body };
       }
 
-      // Save updated settings back to Redis safely and trigger WebSub registration if YT Handle exists
       try {
         await redis.set("app_settings", currentSettings);
-
         if (currentSettings.ytHandle) {
           await registerYouTubeWebSub(currentSettings.ytHandle);
         }
@@ -231,32 +252,18 @@ export default async function handler(req, res) {
         );
       }
 
-      // Re-attach env keys to response
+      currentSettings.twitchClientId = process.env.TWITCH_CLIENT_ID || "";
+      currentSettings.twitchAccessToken =
+        (await redis.get("twitch_access_token")) || "";
       currentSettings.ytApiKey = process.env.YT_API_KEY || "";
       currentSettings.giphyApiKey = process.env.GIPHY_API_KEY || "";
       currentSettings.discordWebhookUrl = process.env.DISCORD_WEBHOOK_URL || "";
 
       return res.status(200).json({ success: true, settings: currentSettings });
     } catch (error) {
-      // Detailed inspection logging for debugging
       await sendDiscordLogBackend("error", "--- DEBUG API POST ERROR ---");
       await sendDiscordLogBackend("error", "Error Name:", error.name);
       await sendDiscordLogBackend("error", "Error Message:", error.message);
-      await sendDiscordLogBackend(
-        "error",
-        "Request Body Action:",
-        body?.action,
-      );
-
-      if (process.env.DISCORD_WEBHOOK_URL) {
-        await fetch(process.env.DISCORD_WEBHOOK_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            content: `🚨 **Error in Settings API:** \`${error.message}\``,
-          }),
-        }).catch(() => {});
-      }
 
       return res.status(200).json({
         success: true,
@@ -288,7 +295,7 @@ async function sendDiscordLogBackend(level, message, error = null) {
 async function registerYouTubeWebSub(channelId) {
   if (!channelId) return;
 
-  const callbackUrl = `${process.env.NEXT_PUBLIC_APP_URL || "https://yourdomain.com"}/api/youtube-webhook`;
+  const callbackUrl = `${process.env.NEXT_PUBLIC_APP_URL || "https://test-chat-nine-theta.vercel.app"}/api/youtube-webhook`;
   const topicUrl = `https://www.youtube.com/xml/feeds/videos.xml?channel_id=${channelId}`;
 
   try {

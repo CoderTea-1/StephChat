@@ -2,12 +2,19 @@
   "name": "stephchat",
   "version": "1.0.0",
   "type": "module",
+  "main": "api/settings.mjs",
   "dependencies": {
     "@ai-sdk/google": "^4.0.85",
-    "@upstash/redis": "^1.38.2",
+    "@upstash/redis": "^1.39.0",
     "@vercel/kv": "^3.0.0",
     "ai": "^7.0.122",
+    "body-parser": "^2.3.0",
+    "dotenv": "^18.0.5",
+    "express": "^5.2.1",
+    "pusher": "^5.3.4",
     "tmi.js": "^1.8.5",
+    "ws": "^8.22.0",
+    "xml2js": "^0.6.2",
     "zod": "^4.6.5"
   }
 }
