@@ -69,7 +69,6 @@
   <body>
     <h1>Manage Banned Words</h1>
 
-    <!-- New Import Button -->
     <div>
       <button class="import-btn" onclick="importGitHubLists()">
         📥 Import Open-Source GitHub Lists
@@ -94,7 +93,15 @@
     <script>
       const API_URL = "/api/settings";
 
-      // 1. Fetch current words on page load
+      // Safe fallback log helper if common.js isn't loaded yet
+      function sendDiscordLog(level, message) {
+        if (typeof window.sendDiscordLog === "function" && window.sendDiscordLog !== sendDiscordLog) {
+          window.sendDiscordLog(level, message);
+        } else {
+          console.log(`[${level}] ${message}`);
+        }
+      }
+
       async function fetchWords() {
         try {
           const res = await fetch(API_URL);
@@ -105,7 +112,6 @@
         }
       }
 
-      // 2. Add an individual custom banned word
       async function addWord() {
         const input = document.getElementById("wordInput");
         const word = input.value.trim();
@@ -131,7 +137,6 @@
         renderBannedList(data.bannedWords || []);
       }
 
-      // 4. Safe extractor helper for open-source lists
       function extractWordsFromData(data) {
         if (!data) return [];
         let rawList = [];
@@ -152,7 +157,6 @@
           .filter((w) => typeof w === "string" && w.trim().length > 0);
       }
 
-      // 5. Bulk import from GitHub open-source lists
       async function importGitHubLists() {
         const statusEl = document.getElementById("status");
         statusEl.innerText = "Downloading open-source lists...";
@@ -203,10 +207,9 @@
             );
           });
           sendDiscordLog(
-              "info",
-              `--- END OF WORD LIST ---`,
-            );
-          
+            "info",
+            `--- END OF WORD LIST ---`,
+          );
 
           if (allWords.length === 0) {
             statusEl.innerText = "Error: Extracted 0 words.";
@@ -225,9 +228,8 @@
           });
 
           sendDiscordLog("info", `Backend HTTP Status: ${res.status}`);
-          `--- END OF WORD LIST ---`
           const data = await res.json();
-          sendDiscordLog("info", `Backend JSON Response: ${data}`);
+          sendDiscordLog("info", `Backend JSON Response: ${JSON.stringify(data)}`);
 
           const updatedWords = data.bannedWords || [];
           renderBannedList(updatedWords);
@@ -242,7 +244,6 @@
         }
       }
 
-      // 6. Dedicated renderers to avoid callback scope errors
       function renderBannedList(words) {
         const list = document.getElementById("wordList");
         if (!list) return;
@@ -253,7 +254,7 @@
           list.appendChild(li);
         });
       }
-      // Initialize on page load
+
       fetchWords();
     </script>
   </body>

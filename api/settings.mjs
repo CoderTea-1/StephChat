@@ -295,7 +295,7 @@ async function sendDiscordLogBackend(level, message, error = null) {
 async function registerYouTubeWebSub(channelId) {
   if (!channelId) return;
 
-  const callbackUrl = `${process.env.NEXT_PUBLIC_APP_URL || "https://test-chat-nine-theta.vercel.app"}/api/youtube-webhook`;
+  const callbackUrl = `https://stephchat.onrender.com/api/youtube-webhook`;
   const topicUrl = `https://www.youtube.com/xml/feeds/videos.xml?channel_id=${channelId}`;
 
   try {

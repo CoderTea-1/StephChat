@@ -1,13 +1,12 @@
-// youtube-webhook.mjs
 import { Redis } from "@upstash/redis";
-import { parseStringPromise } from "xml2js"; // Make sure to install xml2js or use standard parsing
+import { parseStringPromise } from "xml2js";
 
 const redis = new Redis({
   url: process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL || "",
   token: process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN || "",
 });
 
-export default async function handler(req, res) {
+export async function handleYouTubeWebhook(req, res, clients = []) {
   // 1. Handle Google's WebSub Subscription Verification (GET)
   if (req.method === "GET") {
     const mode = req.query["hub.mode"];
@@ -31,7 +30,6 @@ export default async function handler(req, res) {
         rawBody += chunk;
       }
 
-      // Parse the incoming Atom XML feed from YouTube
       const parsedXml = await parseStringPromise(rawBody);
       const entry = parsedXml?.feed?.entry?.[0];
 
@@ -40,16 +38,21 @@ export default async function handler(req, res) {
         const channelId = entry["yt:channelId"]?.[0];
         const title = entry["title"]?.[0];
         
-        // If YouTube sends an entry, check if it's live or newly uploaded
-        // (PubSubHubbub sends notifications for uploads too, so you can verify live status or video details)
         if (videoId && channelId) {
-          await redis.set(`yt_live_status:${channelId}`, {
+          const payload = {
             isLive: true,
             videoId: videoId,
             title: title,
             updatedAt: new Date().toISOString()
-          });
+          };
+
+          await redis.set(`yt_live_status:${channelId}`, payload);
           console.log(`[YouTube Webhook] Stream live detected for channel ${channelId}! Video ID: ${videoId}`);
+
+          // Broadcast to SSE clients if any are connected
+          clients.forEach(client => {
+            client.write(`data: ${JSON.stringify({ type: 'youtube_live', ...payload })}\n\n`);
+          });
         }
       }
 

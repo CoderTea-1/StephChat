@@ -1,4 +1,5 @@
 /* Global references and state variables */
+const API_BASE = "https://stephchat.onrender.com";
 const chatContainer = document.getElementById("chat-container");
 let ytTimeouts = [];
 let pusherInstance = null;
@@ -12,7 +13,7 @@ window.DISCORD_WEBHOOK_URL = window.DISCORD_WEBHOOK_URL || "";
 
 async function initializeEnvironment() {
   try {
-    const res = await fetch("/api/settings");
+    const res = await fetch(`${API_BASE}/api/settings`);
     if (res.ok) {
       const data = await res.json();
       window.DISCORD_WEBHOOK_URL =
@@ -555,7 +556,7 @@ async function saveCurrentSettingsToCloud() {
       settingsData[cb.id] = cb.checked;
     });
 
-    const response = await fetch("/api/settings", {
+    const response = await fetch(`${API_BASE}/api/settings`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(settingsData),
@@ -575,7 +576,7 @@ async function saveCurrentSettingsToCloud() {
 /* Fetch saved settings from Redis and apply them to the UI on page load */
 async function loadSettingsOnStartup() {
   try {
-    const response = await fetch("/api/settings");
+    const response = await fetch(`${API_BASE}/api/settings`);
     if (!response.ok) throw new Error("Failed to fetch settings from cloud");
 
     const data = await response.json();
@@ -728,14 +729,12 @@ window.addEventListener("DOMContentLoaded", async () => {
   await loadSettingsOnStartup();
 
   document.getElementById("twitch-oauth-btn")?.addEventListener("click", () => {
-    // Replace with your actual backend route for Twitch authentication
-    window.location.href = "/api/auth/twitch";
+    window.location.href = `${API_BASE}/api/auth/twitch`;
   });
 
   // YouTube OAuth Handler
   document.getElementById("yt-oauth-btn")?.addEventListener("click", () => {
-    // Replace with your actual backend route for YouTube authentication
-    window.location.href = "/api/auth/youtube";
+    window.location.href = `${API_BASE}/api/auth/youtube`;
   });
 
   const savedAnnouncement = localStorage.getItem("stream_pinned_announcement");
@@ -803,7 +802,7 @@ window.addEventListener("DOMContentLoaded", async () => {
 
     async function pollCloudSettings() {
       try {
-        const response = await fetch("/api/settings");
+        const response = await fetch(`${API_BASE}/api/settings`);
         if (response.ok) {
           const settings = await response.json();
           const currentString = JSON.stringify(settings);
@@ -825,7 +824,7 @@ window.addEventListener("DOMContentLoaded", async () => {
 
     loadSettingsOnStartup().then(async () => {
       try {
-        const res = await fetch("/api/settings");
+        const res = await fetch(`${API_BASE}/api/settings`);
         if (res.ok) {
           const data = await res.json();
           lastSettingsString = JSON.stringify(data);
@@ -877,7 +876,7 @@ window.addEventListener("DOMContentLoaded", async () => {
 
       // 3. Send update to cloud backend (settings.js / Redis) to wipe pinnedAnnouncement
       try {
-        const response = await fetch("/api/settings", {
+        const response = await fetch(`${API_BASE}/api/settings`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -919,7 +918,7 @@ window.addEventListener("DOMContentLoaded", async () => {
 
       if (choice === "cloud" || choice === "both") {
         try {
-          await fetch("/api/settings", {
+          await fetch(`${API_BASE}/api/settings`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ action: "clear_colors" }),
@@ -947,7 +946,7 @@ window.addEventListener("DOMContentLoaded", async () => {
 
       if (choice === "cloud" || choice === "both") {
         try {
-          await fetch("/api/settings", {
+          await fetch(`${API_BASE}/api/settings`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ action: "clear_emotes" }),
@@ -1018,8 +1017,9 @@ async function sendDiscordLog(level, message, error = null) {
     console[level](message, error || "");
   }
 }
+
 /* --- REAL-TIME SERVER-SENT EVENTS LISTENER --- */
-const eventSource = new EventSource('https://YOUR-BACKEND-URL.onrender.com/events');
+const eventSource = new EventSource(`${API_BASE}/events`);
 
 eventSource.onmessage = function(event) {
   const data = JSON.parse(event.data);
@@ -1031,7 +1031,7 @@ eventSource.onmessage = function(event) {
     'Twitch',
     data.user,
     eventMessageText,
-    '#9146ff' // Twitch purple accent
+    '#9146ff'
   );
 };
 

@@ -1,4 +1,3 @@
-// api/stream-status.mjs
 import { Redis } from "@upstash/redis";
 
 const redis = new Redis({
@@ -6,7 +5,7 @@ const redis = new Redis({
   token: process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN || "",
 });
 
-export default async function handler(req, res) {
+export default async function streamStatusHandler(req, res) {
   const { channelId } = req.query;
   if (!channelId) return res.status(400).json({ isLive: false });
 

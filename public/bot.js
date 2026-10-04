@@ -5,7 +5,6 @@ const { Redis } = require("@upstash/redis");
 const redis = Redis.fromEnv();
 let DISCORD_WEBHOOK_URL = "";
 
-// Fetch webhook URL dynamically from Upstash Redis on startup
 async function initBotEnvironment() {
   try {
     const settings = await redis.get("settings");
@@ -16,7 +15,6 @@ async function initBotEnvironment() {
         parsed.discordWebhookUrl || parsed.discordWebhook || "";
     }
 
-    // Fallback: Check if stored directly under a specific key instead of a general 'settings' hash
     if (!DISCORD_WEBHOOK_URL) {
       const directUrl = await redis.get("discordWebhookUrl");
       if (directUrl) DISCORD_WEBHOOK_URL = directUrl;
@@ -30,7 +28,6 @@ initBotEnvironment();
 async function sendDiscordLog(level, message, error = null) {
   const formattedMessage = `🛠️ **[${level.toUpperCase()}]** ${message} ${error ? `\n> \`${error.message || error}\`` : ""}`;
 
-  // If webhook URL isn't loaded yet, attempt to fetch it directly from Redis
   if (!DISCORD_WEBHOOK_URL) {
     try {
       const settings = await redis.get("settings");
@@ -74,20 +71,19 @@ const client = new tmi.Client({
     password: process.env.TWITCH_OAUTH_TOKEN || "",
   },
   channels: [
-    "stephychat", // Your channel
-    "sassinatorsteph", // Other channels you want the bot to join
+    "stephychat",
+    "sassinatorsteph",
   ],
 });
 
-// Define your custom command list and responses here
 const customCommands = {
   "!love": {
     response: "We love our Stephy!",
-    matchType: "exact", // Must be just "!love"
+    matchType: "exact",
   },
   "!so Masster_tea": {
     response: "Welcome in raiders!",
-    matchType: "startsWith", // Triggers on "!so" even if there is text afterwards
+    matchType: "startsWith",
   },
   "!tea": {
     response:
@@ -109,22 +105,18 @@ client.on("connected", (address, port) => {
 });
 
 client.on("message", (channel, tags, message, self) => {
-  if (self) return; // Ignore messages from the bot itself
+  if (self) return;
 
   const username = tags["display-name"] || tags["username"];
   const msgText = message.trim();
   const msgTextLower = msgText.toLowerCase();
 
-  // NOTE: Message logging to Upstash Redis has been completely removed per instructions.
-
-  // 1. Handle !sassmeter command exclusively
   if (msgTextLower === "!sassmeter" || msgTextLower.startsWith("!sassmeter ")) {
     const args = msgText.split(" ");
     const targetUser = args[1] ? args[1].replace("@", "") : username;
 
     (async () => {
       try {
-        // Replace with your actual deployed Vercel URL or production domain
         const apiRes = await fetch(
           "https://steph-chat.vercel.app/api/sass-score",
           {
@@ -152,7 +144,6 @@ client.on("message", (channel, tags, message, self) => {
     return;
   }
 
-  // 2. Loop through your custom commands to find a match based on its rule
   for (const [cmdKey, data] of Object.entries(customCommands)) {
     let isMatched = false;
 
@@ -177,31 +168,4 @@ client.on("message", (channel, tags, message, self) => {
       break;
     }
   }
-async function sendDiscordLog(level, message, error = null) {
-  const formattedMessage = `🛠️ **[${level.toUpperCase()}]** ${message} ${error ? `\n> \`${error.message || error}\`` : ""}`;
-  if (!DISCORD_WEBHOOK_URL) {
-    try {
-      const settings = await redis.get("settings");
-      if (settings) {
-        const parsed =
-          typeof settings === "string" ? JSON.parse(settings) : settings;
-        DISCORD_WEBHOOK_URL =
-          parsed.discordWebhookUrl || parsed.discordWebhook || "";
-      }
-    } catch (e) {}
-  }
-  if (!DISCORD_WEBHOOK_URL) {
-    console[level](message, error || "");
-    return;
-  }
-  try {
-    await fetch(DISCORD_WEBHOOK_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ content: formattedMessage }),
-    });
-  } catch (err) {
-    console[level](message, error || "");
-  }
-}
 });
